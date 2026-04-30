@@ -34,6 +34,8 @@ class Simulation(Base):
     total_ticks = Column(Integer, default=15)
     webhook_url = Column(String(2048), nullable=True)   # Optional: URL für Completion-Notification
     llm_provider = Column(String(32), nullable=False, default="anthropic")   # "anthropic" | "openai"
+    llm_model_fast = Column(String(64), nullable=True)    # Optional Override für Fast-Tier (Aktionen/State)
+    llm_model_smart = Column(String(64), nullable=True)   # Optional Override für Smart-Tier (Persona-Gen/Report/Chat)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 

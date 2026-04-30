@@ -21,6 +21,8 @@ class SimulationCreate(BaseModel):
     config: SimulationConfig = SimulationConfig()
     webhook_url: str | None = None
     llm_provider: LLMProviderName = "anthropic"
+    llm_model_fast: str | None = Field(None, max_length=64)
+    llm_model_smart: str | None = Field(None, max_length=64)
 
     @field_validator("webhook_url")
     @classmethod
@@ -56,6 +58,8 @@ class SimulationRead(UUIDModel, TimestampMixin):
     updated_at: datetime
     webhook_url: str | None
     llm_provider: str = "anthropic"
+    llm_model_fast: str | None = None
+    llm_model_smart: str | None = None
 
 
 class SimulationRunResponse(BaseModel):

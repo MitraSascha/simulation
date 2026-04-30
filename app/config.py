@@ -4,8 +4,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     anthropic_api_key: str
     openai_api_key: str = ""
-    openai_model_fast: str = "gpt-4o-mini"
-    openai_model_smart: str = "gpt-4o"
+    openai_model_fast: str = "gpt-5-mini"
+    openai_model_smart: str = "gpt-5"
     anthropic_model_fast: str = "claude-haiku-4-5-20251001"
     anthropic_model_smart: str = "claude-sonnet-4-6"
     database_url: str = "postgresql://sim_user:sim_pass@db:5432/simulation"

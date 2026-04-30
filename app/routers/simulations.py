@@ -151,6 +151,8 @@ async def clone_simulation(
         config=original.config,
         webhook_url=original.webhook_url,
         llm_provider=getattr(original, "llm_provider", "anthropic"),
+        llm_model_fast=getattr(original, "llm_model_fast", None),
+        llm_model_smart=getattr(original, "llm_model_smart", None),
         status=SimulationStatus.pending,
         current_tick=0,
     )

@@ -103,6 +103,7 @@ async def _generate_batch(
     batch_index: int,
     batch_total: int,
     semaphore: asyncio.Semaphore,
+    model: str | None = None,
 ) -> list[dict]:
     async with semaphore:
         prompt = _build_prompt(
@@ -120,6 +121,7 @@ async def _generate_batch(
             tool_description=PERSONA_GENERATION_TOOL_DESC,
             tool_schema=PERSONA_GENERATION_TOOL_SCHEMA,
             max_tokens=max_tokens,
+            model=model,
         )
 
         personas = result.get("personas") if isinstance(result, dict) else None
@@ -151,6 +153,7 @@ async def _generate_batch(
                     tool_description=PERSONA_GENERATION_TOOL_DESC,
                     tool_schema=PERSONA_GENERATION_TOOL_SCHEMA,
                     max_tokens=retry_max_tokens,
+                    model=model,
                 )
                 extra = retry_result.get("personas") if isinstance(retry_result, dict) else None
                 if extra:
@@ -187,6 +190,7 @@ async def generate_personas(
     industry: str,
     persona_count: int = 10,
     provider_name: str | None = None,
+    model: str | None = None,
 ) -> list[dict]:
     """Generiert N Personas asynchron via konfigurierten LLM-Provider.
 
@@ -204,6 +208,7 @@ async def generate_personas(
             provider, product_description, target_market, industry,
             persona_count, batch_index=0, batch_total=1,
             semaphore=asyncio.Semaphore(1),
+            model=model,
         )
         result = _dedupe_names(result)
         logger.info("Persona-Generierung abgeschlossen: %d Personas erstellt", len(result))
@@ -229,6 +234,7 @@ async def generate_personas(
         _generate_batch(
             provider, product_description, target_market, industry,
             size, idx, batch_total, semaphore,
+            model=model,
         )
         for idx, size in enumerate(batch_sizes)
     ]

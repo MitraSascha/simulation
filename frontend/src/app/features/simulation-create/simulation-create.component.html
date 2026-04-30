@@ -132,6 +132,70 @@
         <p class="label-hint" style="margin-top: 8px;">
           Der gewählte Anbieter wird für diese Simulation festgehalten — Persona-Generierung, Tick-Loop, Report und Chat nutzen dasselbe Modell.
         </p>
+
+        <!-- Erweitert: Modell pro Rolle -->
+        <button type="button"
+                (click)="showAdvanced.set(!showAdvanced())"
+                style="margin-top: 14px; background: transparent; border: none; color: var(--ink-3); font-size: 12.5px; font-weight: 500; cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px;"
+                [attr.aria-expanded]="showAdvanced()">
+          <i class="pi" [class.pi-chevron-right]="!showAdvanced()" [class.pi-chevron-down]="showAdvanced()" style="font-size: 10px;"></i>
+          Erweitert: Modelle pro Rolle wählen
+        </button>
+
+        @if (showAdvanced()) {
+          <div style="margin-top: 12px; padding: 18px 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);">
+            <label style="margin-bottom: 8px; display: block;">Modus</label>
+            <div role="radiogroup" aria-label="Modell-Modus" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+              @for (mode of modelModes; track mode.id) {
+                <button type="button"
+                        (click)="modelMode.set(mode.id)"
+                        role="radio"
+                        [attr.aria-checked]="modelMode() === mode.id"
+                        style="text-align: left; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"
+                        [style.border-color]="modelMode() === mode.id ? 'var(--primary)' : 'var(--border)'"
+                        [style.border-width]="modelMode() === mode.id ? '2px' : '1px'"
+                        [style.padding]="modelMode() === mode.id ? '9px 11px' : '10px 12px'">
+                  <span style="display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ mode.label }}</span>
+                  <span style="display: block; font-size: 12px; color: var(--ink-3); line-height: 1.4;">{{ mode.desc }}</span>
+                </button>
+              }
+            </div>
+
+            @if (modelMode() === 'custom') {
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label for="model-fast" style="margin-bottom: 6px; font-size: 12.5px;">Schnellmodell (Aktionen / State)</label>
+                  <select id="model-fast"
+                          [ngModel]="customModelFast()"
+                          (ngModelChange)="customModelFast.set($event)"
+                          class="input">
+                    <option value="">— Provider-Default —</option>
+                    @for (m of fastModelOptions(); track m.id) {
+                      <option [value]="m.id">{{ m.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label for="model-smart" style="margin-bottom: 6px; font-size: 12.5px;">Qualitätsmodell (Persona-Gen / Report / Chat)</label>
+                  <select id="model-smart"
+                          [ngModel]="customModelSmart()"
+                          (ngModelChange)="customModelSmart.set($event)"
+                          class="input">
+                    <option value="">— Provider-Default —</option>
+                    @for (m of smartModelOptions(); track m.id) {
+                      <option [value]="m.id">{{ m.label }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            } @else if (modelMode() === 'premium') {
+              <p class="label-hint" style="margin: 0; padding: 10px 12px; background: var(--surface); border-left: 3px solid var(--warning); border-radius: var(--radius-sm);">
+                <strong style="color: var(--ink);">Premium-Modus:</strong> alle Calls (auch Persona-Aktionen) laufen über das Qualitätsmodell.
+                Faustregel: ~6× teurer und ~2× langsamer als Standard, dafür merklich kohärentere Personas. Empfohlen für ≤50 Personas.
+              </p>
+            }
+          </div>
+        }
       </div>
 
       <!-- Sliders -->
@@ -154,6 +218,23 @@
             <p class="label-hint" style="margin-top: 6px;">
               Bis 100 in 5er-Schritten · darüber 25er-Schritte. Bei 500 Personas in 30 Tagen wird die Simulation zur Studie.
             </p>
+
+            @if (personaCount() > 200 && llmProvider() === 'anthropic') {
+              <div class="card card-accent card-warning"
+                   style="margin-top: 12px; padding: 14px 16px; display: flex; gap: 10px; align-items: flex-start;">
+                <i class="pi pi-exclamation-triangle" style="font-size: 16px; color: var(--warning); margin-top: 2px;"></i>
+                <div style="flex: 1; font-size: 13px; line-height: 1.5; color: var(--ink-2);">
+                  <strong style="color: var(--ink);">Über 200 Personas: OpenAI empfohlen.</strong>
+                  Anthropic-Tier-Limits werden bei dieser Größe schnell zur Engstelle (Rate-Limit-Risiko, lange Wartezeiten).
+                  OpenAI gpt-5-mini liefert 500 k TPM und schafft 500 Personas zuverlässig in einem Lauf.
+                  <button type="button"
+                          (click)="llmProvider.set('openai')"
+                          style="margin-top: 6px; background: transparent; border: none; color: var(--primary); font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline;">
+                    Auf OpenAI wechseln
+                  </button>
+                </div>
+              </div>
+            }
           </div>
 
           <div>

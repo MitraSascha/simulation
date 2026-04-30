@@ -43,9 +43,11 @@ class LLMProvider(ABC):
         tool_description: str,
         tool_schema: dict,
         max_tokens: int,
+        model: str | None = None,
     ) -> dict:
         """Erzwungener Tool-Use. Liefert die geparsten Tool-Argumente.
 
+        Wenn model gesetzt ist, wird dieses Modell verwendet; sonst der Tier-Default.
         Wirft RuntimeError, wenn der Provider keine Tool-Antwort liefert
         (z. B. weil max_tokens erreicht wurde).
         """
@@ -59,9 +61,11 @@ class LLMProvider(ABC):
         system: str,
         messages: list[ChatMessage],
         max_tokens: int,
+        model: str | None = None,
     ) -> str:
         """Freie Textantwort eines Chat-Modells (für Persona-Chat).
 
+        Wenn model gesetzt ist, wird dieses Modell verwendet; sonst der Tier-Default.
         Liefert reinen Antworttext (kein Tool-Use).
         """
         ...

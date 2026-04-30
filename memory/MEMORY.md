@@ -31,3 +31,4 @@
 - [Code: Phase 6b Concurrency Guard](subagents/code_phase6b_concurrency_guard.md) — Max concurrent simulations, stale simulation reset
 - [Code: Phase 7 Engine-Optimierung](subagents/code_phase7_engine_optimization.md) — Tool Use, Multi-Action, Feed-Verbesserungen, Parallelisierung
 - [Architekt: LLM-Provider-Abstraktion](subagents/architect_llm_providers.md) — Anthropic + OpenAI austauschbar, pro Simulation in DB
+- [Architekt: Modell-Override pro Rolle](subagents/architect_model_overrides.md) — Standard / Premium / Custom Modus, Custom-Modelle pro Tier in DB

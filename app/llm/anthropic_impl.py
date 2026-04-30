@@ -40,7 +40,9 @@ class AnthropicProvider(LLMProvider):
         self._model_fast = model_fast
         self._model_smart = model_smart
 
-    def _model(self, tier: Tier) -> str:
+    def _resolve_model(self, tier: Tier, override: str | None) -> str:
+        if override:
+            return override
         return self._model_fast if tier == "fast" else self._model_smart
 
     async def _retry(self, fn, *args, max_attempts: int = 3, base_delay: float = 1.0, **kwargs):
@@ -81,6 +83,7 @@ class AnthropicProvider(LLMProvider):
         tool_description: str,
         tool_schema: dict,
         max_tokens: int,
+        model: str | None = None,
     ) -> dict:
         system_payload: list[dict[str, Any]] = [{"type": "text", "text": system}]
         if cache_system:
@@ -94,7 +97,7 @@ class AnthropicProvider(LLMProvider):
 
         message = await self._retry(
             self._client.messages.create,
-            model=self._model(tier),
+            model=self._resolve_model(tier, model),
             max_tokens=max_tokens,
             system=system_payload,
             messages=[
@@ -125,10 +128,11 @@ class AnthropicProvider(LLMProvider):
         system: str,
         messages: list[ChatMessage],
         max_tokens: int,
+        model: str | None = None,
     ) -> str:
         response = await self._retry(
             self._client.messages.create,
-            model=self._model(tier),
+            model=self._resolve_model(tier, model),
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": m["role"], "content": m["content"]} for m in messages],

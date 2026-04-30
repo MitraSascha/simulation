@@ -84,6 +84,7 @@ async def generate_report(
     simulation_id: UUID,
     db: AsyncSession,
     provider_name: str | None = None,
+    model: str | None = None,
 ) -> AnalysisReport:
     """Generiert den Analyse-Report asynchron via konfigurierten LLM-Provider.
 
@@ -231,6 +232,7 @@ Sei konkret, zitiere Beispiele aus der Simulation."""
         tool_description=ANALYSIS_REPORT_TOOL_DESC,
         tool_schema=ANALYSIS_REPORT_TOOL_SCHEMA,
         max_tokens=16000,
+        model=model,
     )
 
     if "full_report" not in data:

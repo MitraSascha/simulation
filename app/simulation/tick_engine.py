@@ -401,6 +401,7 @@ async def persona_action(
     semaphore: asyncio.Semaphore,
     persona_history: str = "",
     provider: LLMProvider | None = None,
+    model: str | None = None,
 ) -> dict:
     """Lässt eine Persona auf ihren Feed reagieren.
 
@@ -440,6 +441,7 @@ async def persona_action(
                 tool_description=PERSONA_ACTION_TOOL_DESC,
                 tool_schema=PERSONA_ACTION_TOOL_SCHEMA,
                 max_tokens=512,
+                model=model,
             )
     except Exception as e:
         logger.warning(f"persona_action für {persona.name} fehlgeschlagen: {e}")
@@ -469,6 +471,7 @@ async def update_persona_state_async(
     semaphore: asyncio.Semaphore,
     ambient_mood: str = "neutral",
     provider: LLMProvider | None = None,
+    model: str | None = None,
 ) -> tuple[dict, str | None]:
     """Aktualisiert den current_state einer Persona asynchron.
 
@@ -533,6 +536,7 @@ async def update_persona_state_async(
                 tool_description=STATE_UPDATE_TOOL_DESC,
                 tool_schema=STATE_UPDATE_TOOL_SCHEMA,
                 max_tokens=256,
+                model=model,
             )
 
         if "opinion_evolution" in parsed:
@@ -583,6 +587,7 @@ async def run_tick(
 
     if provider is None:
         provider = get_provider(getattr(sim, "llm_provider", None))
+    fast_model_override: str | None = getattr(sim, "llm_model_fast", None) or None
 
     # --- Posts separat laden: nur letzte 5 Ingame-Tage ---
     min_day = max(1, ingame_day - 5)
@@ -654,6 +659,7 @@ async def run_tick(
                     semaphore,
                     histories[str(p.id)],
                     provider=provider,
+                    model=fast_model_override,
                 )
                 for p in wave_personas
             ],
@@ -837,6 +843,7 @@ async def run_tick(
             semaphore,
             ambient_mood=ambient_moods.get(str(persona.id), "neutral"),
             provider=provider,
+            model=fast_model_override,
         )
         for persona in personas
     ]

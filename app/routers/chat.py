@@ -26,12 +26,14 @@ async def chat_with_persona(
         raise HTTPException(status_code=404, detail="Persona nicht gefunden")
 
     sim_provider_name: str | None = None
+    sim_model_smart: str | None = None
     sim_result = await db.execute(
         select(Simulation).where(Simulation.id == persona.simulation_id)
     )
     sim = sim_result.scalar_one_or_none()
     if sim is not None:
         sim_provider_name = getattr(sim, "llm_provider", None)
+        sim_model_smart = getattr(sim, "llm_model_smart", None)
     provider = get_provider(sim_provider_name)
 
     current_state: dict = persona.current_state or {}
@@ -63,6 +65,7 @@ async def chat_with_persona(
         system=system_prompt,
         messages=messages_payload,
         max_tokens=512,
+        model=sim_model_smart,
     )
 
     return ChatResponse(

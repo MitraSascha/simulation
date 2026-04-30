@@ -143,6 +143,7 @@ async def run_simulation_background(simulation_id: UUID):
             existing_personas = result.scalars().all()
 
             sim_provider_name = getattr(sim, "llm_provider", None)
+            sim_model_smart = getattr(sim, "llm_model_smart", None) or None
 
             if not existing_personas:
                 persona_count = sim.config.get("persona_count", 10) if sim.config else 10
@@ -152,6 +153,7 @@ async def run_simulation_background(simulation_id: UUID):
                     industry=sim.industry or "",
                     persona_count=persona_count,
                     provider_name=sim_provider_name,
+                    model=sim_model_smart,
                 )
                 logger.info(f"[{simulation_id}] {len(raw_personas)} Personas generiert")
                 for p_data in raw_personas:

@@ -61,8 +61,20 @@ class OpenAIProvider(LLMProvider):
         self._model_fast = model_fast
         self._model_smart = model_smart
 
-    def _model(self, tier: Tier) -> str:
+    def _resolve_model(self, tier: Tier, override: str | None) -> str:
+        if override:
+            return override
         return self._model_fast if tier == "fast" else self._model_smart
+
+    @staticmethod
+    def _is_o1_model(model: str) -> bool:
+        """Erkennt o1/o1-mini (kein system-Role, streaming eingeschränkt)."""
+        import re
+        return bool(re.match(r"^o1(-|$)", model))
+
+    def _token_kwarg(self, max_tokens: int) -> dict:
+        """Alle modernen OpenAI-Modelle nutzen max_completion_tokens."""
+        return {"max_completion_tokens": min(max_tokens, self._MAX_TOKENS_CAP)}
 
     async def _retry(self, fn, *args, max_attempts: int = 3, base_delay: float = 1.0, **kwargs):
         last_exc: Exception | None = None
@@ -98,6 +110,7 @@ class OpenAIProvider(LLMProvider):
         tool_description: str,
         tool_schema: dict,
         max_tokens: int,
+        model: str | None = None,
     ) -> dict:
         # cache_system / block.cache: no-op — OpenAI cached automatisch.
         user_text = self._merge_user_blocks(user_blocks)
@@ -111,21 +124,31 @@ class OpenAIProvider(LLMProvider):
             },
         }
 
-        capped_tokens = min(max_tokens, self._MAX_TOKENS_CAP)
-        if capped_tokens < max_tokens:
+        resolved_model = self._resolve_model(tier, model)
+        token_kwarg = self._token_kwarg(max_tokens)
+        capped = token_kwarg["max_completion_tokens"]
+        if capped < max_tokens:
             logger.warning(
                 "OpenAI: max_tokens %d auf %d gedeckelt (Output-Limit-Schutz)",
-                max_tokens, capped_tokens,
+                max_tokens, capped,
             )
+
+        # o1/o1-mini kennt kein system-Role — Inhalt als user-Nachricht voranstellen
+        if self._is_o1_model(resolved_model):
+            messages_list = [
+                {"role": "user", "content": f"[System]\n{system}\n\n{user_text}"},
+            ]
+        else:
+            messages_list = [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_text},
+            ]
 
         response = await self._retry(
             self._client.chat.completions.create,
-            model=self._model(tier),
-            max_tokens=capped_tokens,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_text},
-            ],
+            model=resolved_model,
+            **token_kwarg,
+            messages=messages_list,
             tools=[function_def],
             tool_choice={"type": "function", "function": {"name": tool_name}},
         )
@@ -156,14 +179,22 @@ class OpenAIProvider(LLMProvider):
         system: str,
         messages: list[ChatMessage],
         max_tokens: int,
+        model: str | None = None,
     ) -> str:
-        payload = [{"role": "system", "content": system}]
+        resolved_model = self._resolve_model(tier, model)
+        token_kwarg = self._token_kwarg(max_tokens)
+
+        if self._is_o1_model(resolved_model):
+            # o1/o1-mini kennt kein system-Role
+            payload: list[dict] = [{"role": "user", "content": f"[System]\n{system}"}]
+        else:
+            payload = [{"role": "system", "content": system}]
         payload.extend({"role": m["role"], "content": m["content"]} for m in messages)
 
         response = await self._retry(
             self._client.chat.completions.create,
-            model=self._model(tier),
-            max_tokens=min(max_tokens, self._MAX_TOKENS_CAP),
+            model=resolved_model,
+            **token_kwarg,
             messages=payload,
         )
 

@@ -41,5 +41,9 @@ async def generate_report_endpoint(
     if not sim:
         raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
 
-    report = await generate_report(simulation_id, db, provider_name=getattr(sim, "llm_provider", None))
+    report = await generate_report(
+        simulation_id, db,
+        provider_name=getattr(sim, "llm_provider", None),
+        model=getattr(sim, "llm_model_smart", None) or None,
+    )
     return report

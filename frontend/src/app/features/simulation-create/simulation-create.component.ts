@@ -30,8 +30,42 @@ export class SimulationCreateComponent {
 
   readonly providers: { id: LlmProvider; label: string; sub: string; icon: string }[] = [
     { id: 'anthropic', label: 'Claude (Anthropic)', sub: 'Sonnet 4.6 + Haiku 4.5', icon: 'pi-sparkles' },
-    { id: 'openai',    label: 'OpenAI',             sub: 'GPT-4o + GPT-4o-mini',   icon: 'pi-bolt' },
+    { id: 'openai',    label: 'OpenAI',             sub: 'GPT-5 + GPT-5-mini',     icon: 'pi-bolt' },
   ];
+
+  // Modell-Wahl pro Rolle (Standard / Premium / Custom)
+  readonly modelModes = [
+    { id: 'standard', label: 'Standard', desc: 'Schnellmodell für Aktionen, Qualitätsmodell für Persona-Gen + Report' },
+    { id: 'premium',  label: 'Premium',  desc: 'Qualitätsmodell für ALLES — teurer aber kohärenter' },
+    { id: 'custom',   label: 'Custom',   desc: 'Modelle pro Rolle frei wählen' },
+  ] as const;
+  modelMode = signal<'standard' | 'premium' | 'custom'>('standard');
+  customModelFast = signal<string>('');
+  customModelSmart = signal<string>('');
+  showAdvanced = signal(false);
+
+  // Modell-Optionen pro Provider — Anzeigeliste für Custom-Dropdowns
+  readonly modelOptions: Record<LlmProvider, { id: string; label: string; tier: 'fast' | 'smart' }[]> = {
+    anthropic: [
+      { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (schnell, günstig)',     tier: 'fast'  },
+      { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6 (Standard-Qualität)',   tier: 'smart' },
+      { id: 'claude-opus-4-7',           label: 'Claude Opus 4.7 (Top-Qualität, teuer)',   tier: 'smart' },
+    ],
+    openai: [
+      { id: 'gpt-4o-mini',  label: 'GPT-4o-mini (Legacy, sehr günstig)', tier: 'fast'  },
+      { id: 'gpt-5-mini',   label: 'GPT-5-mini (schnell, hohe TPM)',     tier: 'fast'  },
+      { id: 'gpt-4o',       label: 'GPT-4o (Legacy, ausgewogen)',        tier: 'smart' },
+      { id: 'gpt-5',        label: 'GPT-5 (Top-Qualität)',               tier: 'smart' },
+    ],
+  };
+
+  /** Aktuelle Modell-Optionen für Fast-Tier abhängig vom Provider. */
+  fastModelOptions() {
+    return this.modelOptions[this.llmProvider()].filter(m => m.tier === 'fast');
+  }
+  smartModelOptions() {
+    return this.modelOptions[this.llmProvider()].filter(m => m.tier === 'smart');
+  }
 
   // Presets
   readonly presets = [
@@ -104,6 +138,25 @@ export class SimulationCreateComponent {
     return rest === 0 ? `~${h} Std` : `~${h} Std ${rest} Min`;
   }
 
+  /** Resolved model_fast für den Create-Payload (oder null = Default). */
+  resolveModelFast(): string | null {
+    const mode = this.modelMode();
+    if (mode === 'standard') return null;
+    if (mode === 'premium') {
+      // Premium: Smart-Modell auch für Fast-Slot
+      return this.smartModelOptions()[0]?.id ?? null;
+    }
+    // custom
+    return this.customModelFast() || null;
+  }
+
+  resolveModelSmart(): string | null {
+    const mode = this.modelMode();
+    if (mode === 'standard') return null;
+    if (mode === 'premium') return this.smartModelOptions()[0]?.id ?? null;
+    return this.customModelSmart() || null;
+  }
+
   submit() {
     this.submitting.set(true);
     const data: SimulationCreate = {
@@ -113,6 +166,8 @@ export class SimulationCreateComponent {
       industry: this.industry() || undefined,
       config: { persona_count: this.personaCount(), tick_count: this.tickCount() },
       llm_provider: this.llmProvider(),
+      llm_model_fast: this.resolveModelFast(),
+      llm_model_smart: this.resolveModelSmart(),
     };
     this.simService.create(data).subscribe({
       next: (sim) => {

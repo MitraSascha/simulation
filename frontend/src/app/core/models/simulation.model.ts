@@ -12,6 +12,8 @@ export interface Simulation {
   total_ticks: number;
   webhook_url: string | null;
   llm_provider: LlmProvider;
+  llm_model_fast: string | null;
+  llm_model_smart: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,6 +44,8 @@ export interface SimulationCreate {
   industry?: string;
   config?: SimulationConfig;
   llm_provider?: LlmProvider;
+  llm_model_fast?: string | null;
+  llm_model_smart?: string | null;
 }
 
 export interface SimulationStreamEvent {
