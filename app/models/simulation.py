@@ -1,0 +1,55 @@
+import uuid
+from datetime import datetime, timezone
+
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+from enum import Enum as PyEnum
+
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from app.database import Base
+
+
+class SimulationStatus(str, PyEnum):
+    pending = "pending"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
+class Simulation(Base):
+    __tablename__ = "simulations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    product_description = Column(Text, nullable=False)
+    target_market = Column(String(255))
+    industry = Column(String(255))
+    status = Column(Enum(SimulationStatus, name='simulationstatus', create_type=False), default=SimulationStatus.pending, nullable=False)
+    config = Column(JSON, default={})  # persona_count, tick_count, tick_duration_days
+    current_tick = Column(Integer, default=0)
+    total_ticks = Column(Integer, default=15)
+    webhook_url = Column(String(2048), nullable=True)   # Optional: URL für Completion-Notification
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    personas = relationship("Persona", back_populates="simulation", cascade="all, delete-orphan")
+    posts = relationship("Post", back_populates="simulation", cascade="all, delete-orphan")
+    ticks = relationship("SimulationTick", back_populates="simulation", cascade="all, delete-orphan")
+    reports = relationship("AnalysisReport", back_populates="simulation", cascade="all, delete-orphan")
+
+
+class SimulationTick(Base):
+    __tablename__ = "simulation_ticks"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    simulation_id = Column(UUID(as_uuid=True), ForeignKey("simulations.id"), nullable=False)
+    tick_number = Column(Integer, nullable=False)
+    ingame_day = Column(Integer, nullable=False)
+    snapshot = Column(JSON, default={})  # Weltstand-Snapshot des Ticks
+    created_at = Column(DateTime, default=_utcnow)
+
+    simulation = relationship("Simulation", back_populates="ticks")

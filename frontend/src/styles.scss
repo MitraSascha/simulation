@@ -1,0 +1,311 @@
+@import "tailwindcss" layer(tailwind);
+@import "primeicons/primeicons.css";
+
+:root {
+  --color-primary: #6366f1;
+  --color-primary-light: #818cf8;
+  --color-primary-dark: #4f46e5;
+  --color-feedbook: #3b82f6;
+  --color-threadit: #f97316;
+  --color-positive: #10b981;
+  --color-negative: #ef4444;
+  --color-skeptic: #a855f7;
+  --color-neutral: #64748b;
+  --color-amber: #f59e0b;
+
+  // Glass effect
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-hover: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0a0a1a;
+  color: #e2e8f0;
+  overflow: hidden;
+  height: 100vh;
+}
+
+html { scroll-behavior: smooth; }
+
+// Scrollbar styling
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+
+// Animations
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.2); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in { animation: fadeInUp 0.4s ease-out both; }
+.animate-fade-in-delay-1 { animation: fadeInUp 0.4s ease-out 0.1s both; }
+.animate-fade-in-delay-2 { animation: fadeInUp 0.4s ease-out 0.2s both; }
+.animate-fade-in-delay-3 { animation: fadeInUp 0.4s ease-out 0.3s both; }
+.animate-slide-in { animation: slide-in-right 0.3s ease-out both; }
+.animate-slide-in-right { animation: slide-in-right 0.25s ease-out both; }
+.animate-slide-in-left { animation: slide-in-left 0.25s ease-out both; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+// Step transition animation
+@keyframes stepIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-step-in { animation: stepIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+// Feed item entrance
+@keyframes feedIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-feed-in { animation: feedIn 0.35s ease-out both; }
+
+// Persona detail panel
+@keyframes personaDetailIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-persona-detail { animation: personaDetailIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+// Review number pulse
+@keyframes reviewPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.review-pulse { animation: reviewPulse 2s ease-in-out infinite; }
+
+// Glass card base
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--glass-hover);
+    border-color: rgba(99, 102, 241, 0.2);
+  }
+}
+
+// Gradient text
+.gradient-text {
+  background: linear-gradient(135deg, #818cf8, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// Status dot animation
+.status-dot-running {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+// Loading skeleton
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+// Mood colors as utilities
+.mood-positive { color: var(--color-positive); }
+.mood-negative { color: var(--color-negative); }
+.mood-skeptic { color: var(--color-skeptic); }
+.mood-neutral { color: var(--color-neutral); }
+.mood-curious { color: var(--color-feedbook); }
+
+// Platform badges
+.platform-feedbook {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.platform-threadit {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+// === Dashboard Tab Navigation ===
+.tab-link {
+  position: relative;
+  border-bottom: 2px solid transparent;
+
+  &:hover {
+    border-color: rgba(100, 116, 139, 0.4);
+  }
+
+  &.tab-active {
+    color: #818cf8 !important;
+    border-color: transparent !important;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #6366f1, #a855f7);
+      border-radius: 2px 2px 0 0;
+    }
+  }
+}
+
+// === Progress Bar Glow (running state) ===
+.progress-bar-glow {
+  animation: progressGlow 2s ease-in-out infinite;
+}
+
+@keyframes progressGlow {
+  0%, 100% { box-shadow: 0 0 4px 0 rgba(99, 102, 241, 0.2); }
+  50% { box-shadow: 0 0 16px 3px rgba(99, 102, 241, 0.35); }
+}
+
+// === KPI Card Colored Left Borders ===
+.kpi-card {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.kpi-border-indigo { border-left-color: #6366f1; }
+.kpi-border-purple { border-left-color: #a855f7; }
+.kpi-border-blue { border-left-color: #3b82f6; }
+.kpi-border-amber { border-left-color: #f59e0b; }
+
+// === Step Indicator ===
+.step-indicator-active {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 0 12px 2px rgba(99, 102, 241, 0.25);
+}
+
+.step-indicator {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+// === Preset Cards ===
+.preset-card {
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.preset-card-selected {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: transparent !important;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+// === Range Slider Custom Styling ===
+.range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  outline: none;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    cursor: pointer;
+    border: 2px solid #0a0a1a;
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    cursor: pointer;
+    border: 2px solid #0a0a1a;
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+  }
+
+  &::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+  }
+
+  &::-moz-range-track {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    border: none;
+  }
+
+  &:focus {
+    &::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    }
+  }
+}
+
+// === Submit Button ===
+.submit-btn {
+  position: relative;
+  font-size: 0.9375rem;
+  letter-spacing: 0.01em;
+}

@@ -1,0 +1,78 @@
+from datetime import datetime
+from uuid import UUID
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from app.models.simulation import SimulationStatus
+from app.schemas.common import UUIDModel, TimestampMixin
+
+
+class SimulationConfig(BaseModel):
+    persona_count: int = Field(10, ge=2, le=100)
+    tick_count: int = Field(15, ge=1, le=100)
+
+
+class SimulationCreate(BaseModel):
+    name: str = Field(..., min_length=3, max_length=255)
+    product_description: str = Field(..., min_length=20, max_length=10000)
+    target_market: str | None = Field(None, max_length=255)
+    industry: str | None = Field(None, max_length=255)
+    total_ticks: int = Field(15, ge=1, le=100)
+    config: SimulationConfig = SimulationConfig()
+    webhook_url: str | None = None
+
+    @field_validator("webhook_url")
+    @classmethod
+    def validate_webhook_url(cls, v):
+        if v is None:
+            return v
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("webhook_url muss mit http:// oder https:// beginnen")
+        if len(v) > 2048:
+            raise ValueError("webhook_url darf maximal 2048 Zeichen lang sein")
+        return v
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, v):
+        return v.strip()
+
+    @field_validator("product_description")
+    @classmethod
+    def strip_description(cls, v):
+        return v.strip()
+
+
+class SimulationRead(UUIDModel, TimestampMixin):
+    name: str
+    product_description: str
+    target_market: str | None
+    industry: str | None
+    status: SimulationStatus
+    current_tick: int
+    total_ticks: int
+    config: dict
+    updated_at: datetime
+    webhook_url: str | None
+
+
+class SimulationRunResponse(BaseModel):
+    simulation_id: UUID
+    status: str
+    message: str
+
+
+class SimulationStats(BaseModel):
+    """Detaillierter Status einer Simulation."""
+    simulation_id: UUID
+    status: SimulationStatus
+    current_tick: int
+    total_ticks: int
+    progress_pct: int
+    persona_count: int
+    post_count: int
+    comment_count: int
+    reaction_count: int
+
+
+class SimulationResetResponse(BaseModel):
+    simulation_id: UUID
+    message: str

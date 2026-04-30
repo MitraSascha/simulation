@@ -1,0 +1,23 @@
+:host {
+  display: block;
+  height: 100vh;
+}
+
+// Active navigation link with left accent bar
+.active-nav-link {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #818cf8 !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, #6366f1, #a855f7);
+  }
+}

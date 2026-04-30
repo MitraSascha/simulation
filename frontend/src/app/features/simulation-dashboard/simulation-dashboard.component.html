@@ -1,0 +1,92 @@
+@if (loading()) {
+  <div class="flex items-center justify-center h-full" role="status" aria-label="Simulation wird geladen">
+    <div class="text-center">
+      <i class="pi pi-spin pi-spinner text-3xl text-indigo-500 mb-4 block" aria-hidden="true"></i>
+      <p class="text-sm text-slate-500">Simulation wird geladen...</p>
+    </div>
+  </div>
+} @else if (simulation()) {
+  <div class="flex flex-col h-full">
+    <!-- Top Header -->
+    <header class="border-b border-white/[0.06] px-6 py-4 shrink-0 bg-[#0d0d24]/50 backdrop-blur-md">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <a routerLink="/simulations"
+             aria-label="Zurueck zur Uebersicht"
+             class="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-1 focus:ring-offset-[#0a0a1a] transition-all">
+            <i class="pi pi-arrow-left text-xs" aria-hidden="true"></i>
+          </a>
+          <div>
+            <div class="flex items-center gap-3">
+              <h1 class="text-lg font-bold text-white">{{ simulation()!.name }}</h1>
+              <!-- Status -->
+              @if (simulation()!.status === 'running') {
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-indigo-500/15 text-indigo-400 border border-indigo-500/20"
+                      role="status" aria-label="Status: Simulation laeuft">
+                  <div class="status-dot-running" aria-hidden="true"></div> Laeuft
+                </span>
+              } @else if (simulation()!.status === 'completed') {
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                      role="status" aria-label="Status: Abgeschlossen">
+                  <i class="pi pi-check-circle text-[10px]" aria-hidden="true"></i> Abgeschlossen
+                </span>
+              } @else if (simulation()!.status === 'failed') {
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-500/15 text-red-400 border border-red-500/20"
+                      role="status" aria-label="Status: Fehlgeschlagen">
+                  <i class="pi pi-times-circle text-[10px]" aria-hidden="true"></i> Fehlgeschlagen
+                </span>
+              } @else {
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white/[0.04] text-slate-500 border border-white/[0.06]"
+                      role="status" aria-label="Status: Ausstehend">
+                  Ausstehend
+                </span>
+              }
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">{{ simulation()!.product_description | slice:0:80 }}{{ simulation()!.product_description.length > 80 ? '...' : '' }}</p>
+          </div>
+        </div>
+
+        <!-- Progress (if running) -->
+        @if (simulation()!.status === 'running') {
+          <div class="flex items-center gap-4">
+            <div class="text-right">
+              <p class="text-xs text-slate-500">Fortschritt</p>
+              <p class="text-sm font-bold text-indigo-400">{{ progress }}%</p>
+            </div>
+            <div class="w-32">
+              <div class="w-full bg-white/[0.06] rounded-full h-1.5 progress-bar-glow"
+                   role="progressbar"
+                   [attr.aria-valuenow]="progress"
+                   aria-valuemin="0"
+                   aria-valuemax="100"
+                   [attr.aria-label]="'Simulationsfortschritt: ' + progress + ' Prozent'">
+                <div class="h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000"
+                     [style.width.%]="progress"></div>
+              </div>
+              <p class="text-[10px] text-slate-600 mt-1">Tick {{ simulation()!.current_tick }} / {{ simulation()!.total_ticks }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Tab Navigation -->
+      <nav class="flex gap-1 mt-4 -mb-4" role="tablist" aria-label="Dashboard-Navigation">
+        @for (tab of tabs; track tab.route) {
+          <a [routerLink]="tab.route" routerLinkActive="tab-active"
+             role="tab"
+             [attr.aria-selected]="false"
+             [attr.aria-label]="tab.label"
+             class="tab-link flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-300 transition-all focus:outline-none focus:text-indigo-400">
+            <i [class]="'pi ' + tab.icon + ' text-[11px]'" aria-hidden="true"></i>
+            {{ tab.label }}
+          </a>
+        }
+      </nav>
+    </header>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-auto p-6" role="tabpanel">
+      <router-outlet />
+    </div>
+  </div>
+}

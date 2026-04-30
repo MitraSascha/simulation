@@ -1,0 +1,179 @@
+<div class="space-y-4 animate-fade-in">
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-lg font-semibold text-white">Personas</h2>
+      <p class="text-xs text-slate-500 mt-0.5">Virtuelle Persoenlichkeiten der Simulation</p>
+    </div>
+    <span class="text-sm text-slate-400" aria-live="polite">{{ filteredPersonas().length }} von {{ personas().length }}</span>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex gap-3" role="search" aria-label="Persona-Filter">
+    <input type="text" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event); applyFilter()"
+           placeholder="Name, Ort oder Beruf suchen..."
+           aria-label="Personas durchsuchen"
+           class="flex-1 max-w-sm px-4 py-2 border border-white/[0.06] rounded-lg text-sm bg-white/[0.03] text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow" />
+    <label class="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none hover:text-slate-300 transition-colors">
+      <input type="checkbox" [ngModel]="showSkepticsOnly()" (ngModelChange)="showSkepticsOnly.set($event); applyFilter()"
+             class="accent-purple-500" aria-label="Nur Skeptiker anzeigen" />
+      Nur Skeptiker
+    </label>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-center py-16" role="status" aria-label="Personas werden geladen">
+      <i class="pi pi-spin pi-spinner text-3xl text-indigo-500"></i>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Persona List -->
+      <div class="lg:col-span-1 space-y-2 max-h-[600px] overflow-y-auto pr-2"
+           role="listbox" aria-label="Persona-Liste">
+        @for (p of filteredPersonas(); track p.id) {
+          <button (click)="selectPersona(p)"
+                  role="option"
+                  [attr.aria-selected]="selectedPersona()?.id === p.id"
+                  [class]="selectedPersona()?.id === p.id
+                    ? 'w-full text-left p-4 rounded-xl border-2 border-indigo-500 bg-indigo-950 shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all duration-200'
+                    : 'w-full text-left p-4 rounded-xl border border-white/[0.06] bg-white/[0.03] hover:border-indigo-500/40 hover:shadow-[0_0_8px_rgba(99,102,241,0.08)] hover:scale-[1.01] transition-all duration-200'">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-sm text-white">{{ p.name }}</span>
+              @if (p.is_skeptic) {
+                <span class="text-xs px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/30">Skeptiker</span>
+              }
+            </div>
+            <p class="text-xs text-slate-400 mt-1">{{ p.age }} J., {{ p.location }} - {{ p.occupation }}</p>
+            <p class="text-xs text-slate-500 mt-1">Stimmung: {{ p.current_state?.mood || 'neutral' }}</p>
+          </button>
+        }
+        @if (filteredPersonas().length === 0) {
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <i class="pi pi-search text-3xl text-slate-600 mb-3"></i>
+            <p class="text-sm text-slate-500">Keine Personas gefunden</p>
+            <p class="text-xs text-slate-600 mt-1">Passe deine Suchkriterien an</p>
+          </div>
+        }
+      </div>
+
+      <!-- Detail Panel -->
+      <div class="lg:col-span-2">
+        @if (selectedPersona()) {
+          <div class="bg-white/[0.03] rounded-xl border border-white/[0.06] p-6 animate-fade-in" role="region" aria-label="Persona-Details">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-white">{{ selectedPersona()!.name }}</h3>
+                <p class="text-sm text-slate-400">{{ selectedPersona()!.age }} Jahre, {{ selectedPersona()!.location }}</p>
+                <p class="text-sm text-slate-400">{{ selectedPersona()!.occupation }}</p>
+              </div>
+              <button (click)="openChat()"
+                      aria-label="Chat mit {{ selectedPersona()!.name }} oeffnen"
+                      class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-900/30 transition-all duration-200 inline-flex items-center gap-2">
+                <i class="pi pi-comments"></i> Chat
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p class="text-xs font-medium text-slate-400 mb-1">Persoenlichkeit</p>
+                <p class="text-sm text-slate-300">{{ selectedPersona()!.personality }}</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-slate-400 mb-1">Kommunikationsstil</p>
+                <p class="text-sm text-slate-300">{{ selectedPersona()!.communication_style }}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p class="text-xs font-medium text-slate-400 mb-1">Grundhaltung</p>
+                <p class="text-sm text-slate-300">{{ selectedPersona()!.initial_opinion }}</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-slate-400 mb-1">Aktuelle Meinung</p>
+                <p class="text-sm text-slate-300">{{ selectedPersona()!.current_state?.opinion_evolution || '---' }}</p>
+              </div>
+            </div>
+
+            <!-- Values Pills -->
+            <div class="flex flex-wrap gap-2 mb-4" aria-label="Werte der Persona">
+              @for (value of selectedPersona()!.values || []; track value) {
+                <span class="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-indigo-950/50 to-purple-950/50 border border-indigo-500/20 text-slate-200 shadow-sm">{{ value }}</span>
+              }
+            </div>
+
+            <!-- Recent Actions (Timeline) -->
+            @if (selectedPersona()!.current_state?.recent_actions?.length) {
+              <div class="border-t border-white/[0.04] pt-4">
+                <p class="text-xs font-medium text-slate-400 mb-3">Letzte Aktionen</p>
+                <div class="relative pl-5">
+                  <!-- Timeline line -->
+                  <div class="absolute left-[7px] top-1 bottom-1 w-px bg-gradient-to-b from-indigo-500/40 to-transparent"></div>
+                  @for (action of selectedPersona()!.current_state!.recent_actions!; track action.tick) {
+                    <div class="relative flex items-start gap-3 py-1.5">
+                      <!-- Timeline dot -->
+                      <div class="absolute -left-5 top-2.5 w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-900 shadow-[0_0_6px_rgba(99,102,241,0.4)]"></div>
+                      <div>
+                        <span class="text-xs text-indigo-400 font-semibold">Tick {{ action.tick }}</span>
+                        <p class="text-sm text-slate-400">{{ action.summary }}</p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Chat Panel -->
+            @if (showChat()) {
+              <div class="border-t border-white/[0.04] pt-4 mt-4 animate-fade-in" role="region" aria-label="Chat mit {{ selectedPersona()!.name }}">
+                <h4 class="text-sm font-semibold text-white mb-3">Chat mit {{ selectedPersona()!.name }}</h4>
+                <div class="bg-white/[0.04] rounded-lg p-4 h-64 overflow-y-auto mb-3 space-y-3" role="log" aria-live="polite">
+                  @for (msg of chatMessages(); track $index) {
+                    <div [class]="msg.role === 'user' ? 'flex justify-end animate-slide-in-right' : 'flex justify-start animate-slide-in-left'">
+                      <div [class]="msg.role === 'user'
+                        ? 'max-w-[70%] bg-indigo-600 text-white rounded-2xl rounded-br-sm px-4 py-2 text-sm shadow-md'
+                        : 'max-w-[70%] bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-slate-300 shadow-md'">
+                        {{ msg.content }}
+                      </div>
+                    </div>
+                  }
+                  @if (chatLoading()) {
+                    <div class="flex justify-start animate-slide-in-left">
+                      <div class="bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-2">
+                        <i class="pi pi-spin pi-spinner text-sm text-indigo-500"></i>
+                      </div>
+                    </div>
+                  }
+                </div>
+                <div class="flex gap-2">
+                  <input type="text" [ngModel]="chatInput()" (ngModelChange)="chatInput.set($event)"
+                         (keydown.enter)="sendMessage()"
+                         placeholder="Nachricht schreiben..."
+                         aria-label="Nachricht eingeben"
+                         class="flex-1 px-4 py-2 border border-white/[0.06] rounded-lg text-sm bg-white/[0.03] text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow" />
+                  <button (click)="sendMessage()" [disabled]="chatLoading() || !chatInput().trim()"
+                          aria-label="Nachricht senden"
+                          class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-900/30 disabled:opacity-50 transition-all duration-200">
+                    <i class="pi pi-send"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="bg-white/[0.03] rounded-xl border border-white/[0.06] border-dashed h-full flex items-center justify-center text-slate-500 min-h-[400px]"
+               role="status">
+            <div class="text-center space-y-3">
+              <div class="w-16 h-16 mx-auto rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                <i class="pi pi-user text-2xl text-slate-600"></i>
+              </div>
+              <div>
+                <p class="text-sm text-slate-400 font-medium">Keine Persona ausgewaehlt</p>
+                <p class="text-xs text-slate-600 mt-1">Waehle eine Persona aus der Liste, um Details zu sehen</p>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

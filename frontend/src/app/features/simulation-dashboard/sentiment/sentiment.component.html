@@ -1,0 +1,28 @@
+<div class="space-y-6 animate-fade-in">
+  <div>
+    <h2 class="text-xl font-semibold text-white">Sentiment & Plattform-Analyse</h2>
+    <p class="text-sm text-slate-500 mt-1">Stimmungsverteilung und Aktivitaetstrends ueber alle simulierten Plattformen</p>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-center py-16" role="status" aria-label="Sentiment-Daten werden geladen">
+      <i class="pi pi-spin pi-spinner text-3xl text-indigo-500"></i>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Platform Distribution -->
+      <div class="bg-white/[0.03] rounded-xl border border-white/[0.06] p-5">
+        <h3 class="text-sm font-semibold text-white mb-4">Plattform-Verteilung</h3>
+        <div echarts [options]="platformChart()" class="h-64"
+             role="img" aria-label="Kreisdiagramm: Verteilung der Aktivitaeten auf FeedBook und Threadit"></div>
+      </div>
+
+      <!-- Activity Over Time -->
+      <div class="bg-white/[0.03] rounded-xl border border-white/[0.06] p-5">
+        <h3 class="text-sm font-semibold text-white mb-4">Persona-Aktivitaet</h3>
+        <div echarts [options]="activityChart()" class="h-64"
+             role="img" aria-label="Liniendiagramm: Persona-Aktivitaet im Zeitverlauf der Simulation"></div>
+      </div>
+    </div>
+  }
+</div>
