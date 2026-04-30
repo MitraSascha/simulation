@@ -7,6 +7,7 @@ import { Post } from '../../../core/models/content.model';
 import { TickSnapshot } from '../../../core/models/simulation.model';
 import { EChartsOption } from 'echarts';
 import * as echarts from 'echarts';
+import { CHART, FONT_MONO, FONT_SANS, tooltipStyle, axisCommon, legendCommon } from '../../../shared/chart-theme';
 
 @Component({
   selector: 'app-sentiment',
@@ -22,6 +23,7 @@ export class SentimentComponent implements OnInit {
 
   platformChart = signal<EChartsOption>({});
   activityChart = signal<EChartsOption>({});
+  totalPosts = signal(0);
   loading = signal(true);
 
   private simId = '';
@@ -32,7 +34,7 @@ export class SentimentComponent implements OnInit {
   }
 
   private loadData() {
-    this.postService.list(this.simId, { limit: 1000 }).subscribe(res => {
+    this.postService.list(this.simId, { limit: 500 }).subscribe(res => {
       this.buildPlatformChart(res.items);
       this.loading.set(false);
     });
@@ -44,19 +46,29 @@ export class SentimentComponent implements OnInit {
   private buildPlatformChart(posts: Post[]) {
     const feedbook = posts.filter(p => p.platform === 'feedbook').length;
     const threadit = posts.filter(p => p.platform === 'threadit').length;
+    this.totalPosts.set(feedbook + threadit);
 
     this.platformChart.set({
-      tooltip: { trigger: 'item' },
-      legend: { bottom: 0 },
+      tooltip: { trigger: 'item', ...tooltipStyle },
+      legend: legendCommon(['FeedBook', 'Threadit']),
       series: [{
         type: 'pie',
-        radius: ['40%', '70%'],
+        radius: ['58%', '80%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-        label: { show: true, formatter: '{b}: {c} ({d}%)' },
+        itemStyle: { borderColor: '#ffffff', borderWidth: 3, borderRadius: 4 },
+        label: {
+          show: true,
+          formatter: '{b}\n{c} · {d}%',
+          color: CHART.ink,
+          fontFamily: FONT_SANS,
+          fontSize: 12,
+          fontWeight: 500,
+          lineHeight: 16,
+        },
+        labelLine: { lineStyle: { color: CHART.paperEdge, width: 1 } },
         data: [
-          { value: feedbook, name: 'FeedBook', itemStyle: { color: '#3b82f6' } },
-          { value: threadit, name: 'Threadit', itemStyle: { color: '#f97316' } },
+          { value: feedbook, name: 'FeedBook', itemStyle: { color: CHART.feedbook } },
+          { value: threadit, name: 'Threadit', itemStyle: { color: CHART.threadit } },
         ],
       }],
     });
@@ -64,17 +76,24 @@ export class SentimentComponent implements OnInit {
 
   private buildActivityChart(ticks: TickSnapshot[]) {
     this.activityChart.set({
-      tooltip: { trigger: 'axis' },
-      grid: { top: 20, right: 20, bottom: 30, left: 50 },
-      xAxis: { type: 'category', data: ticks.map(t => `Tag ${t.ingame_day}`) },
-      yAxis: { type: 'value' },
+      tooltip: { trigger: 'axis', ...tooltipStyle },
+      grid: { top: 16, right: 16, bottom: 32, left: 44 },
+      xAxis: {
+        type: 'category',
+        data: ticks.map(t => `T${t.ingame_day}`),
+        ...axisCommon({ splitLine: { show: false } }),
+      },
+      yAxis: { type: 'value', ...axisCommon() },
       series: [{
         type: 'line',
         data: ticks.map(t => t.snapshot.personas_active),
         smooth: true,
-        areaStyle: { opacity: 0.3 },
-        color: '#8b5cf6',
-        name: 'Aktive Personas'
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: CHART.vermillion, width: 2 },
+        itemStyle: { color: CHART.vermillion, borderColor: CHART.paperDeep, borderWidth: 2 },
+        areaStyle: { color: CHART.vermillion, opacity: 0.12 },
+        name: 'Aktive Personas',
       }],
     });
   }

@@ -1,12 +1,15 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models.simulation import SimulationStatus
 from app.schemas.common import UUIDModel, TimestampMixin
 
+LLMProviderName = Literal["anthropic", "openai"]
+
 
 class SimulationConfig(BaseModel):
-    persona_count: int = Field(10, ge=2, le=100)
+    persona_count: int = Field(10, ge=2, le=500)
     tick_count: int = Field(15, ge=1, le=100)
 
 
@@ -15,9 +18,9 @@ class SimulationCreate(BaseModel):
     product_description: str = Field(..., min_length=20, max_length=10000)
     target_market: str | None = Field(None, max_length=255)
     industry: str | None = Field(None, max_length=255)
-    total_ticks: int = Field(15, ge=1, le=100)
     config: SimulationConfig = SimulationConfig()
     webhook_url: str | None = None
+    llm_provider: LLMProviderName = "anthropic"
 
     @field_validator("webhook_url")
     @classmethod
@@ -52,6 +55,7 @@ class SimulationRead(UUIDModel, TimestampMixin):
     config: dict
     updated_at: datetime
     webhook_url: str | None
+    llm_provider: str = "anthropic"
 
 
 class SimulationRunResponse(BaseModel):

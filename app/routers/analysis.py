@@ -37,8 +37,9 @@ async def generate_report_endpoint(
     sim_result = await db.execute(
         select(Simulation).where(Simulation.id == simulation_id)
     )
-    if not sim_result.scalar_one_or_none():
+    sim = sim_result.scalar_one_or_none()
+    if not sim:
         raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
 
-    report = await generate_report(simulation_id, db)
+    report = await generate_report(simulation_id, db, provider_name=getattr(sim, "llm_provider", None))
     return report

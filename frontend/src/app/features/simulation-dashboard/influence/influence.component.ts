@@ -4,8 +4,12 @@ import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import * as echarts from 'echarts';
 import { ApiService } from '../../../core/services/api.service';
 import { PersonaService } from '../../../core/services/persona.service';
+import { PostService } from '../../../core/services/post.service';
+import { SimulationService } from '../../../core/services/simulation.service';
 import { InfluenceEvent } from '../../../core/models/content.model';
 import { Persona } from '../../../core/models/persona.model';
+import { Simulation } from '../../../core/models/simulation.model';
+import { CHART, FONT_MONO, FONT_SANS, tooltipStyle } from '../../../shared/chart-theme';
 
 @Component({
   selector: 'app-influence',
@@ -18,11 +22,16 @@ export class InfluenceComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private personaService = inject(PersonaService);
+  private postService = inject(PostService);
+  private simService = inject(SimulationService);
 
   events = signal<InfluenceEvent[]>([]);
   personas = signal<Persona[]>([]);
+  simulation = signal<Simulation | null>(null);
   sankeyChart = signal<any>({});
   topInfluencers = signal<{ name: string; count: number; isSceptic: boolean }[]>([]);
+  // Fallback: Personas mit den meisten Posts (Proxy für Reichweite, wenn keine Events)
+  topPosters = signal<{ name: string; count: number; isSceptic: boolean }[]>([]);
   loading = signal(true);
 
   private simId = '';
@@ -30,24 +39,43 @@ export class InfluenceComponent implements OnInit {
   ngOnInit() {
     this.simId = this.route.parent!.snapshot.params['id'];
 
-    // Load influence events — these are not paginated, just a direct list
-    // The backend doesn't have a dedicated endpoint for influence events,
-    // so we'll use the JSON export and extract them
+    this.simService.getById(this.simId).subscribe(s => this.simulation.set(s));
+
     this.personaService.list(this.simId, { limit: 200 }).subscribe(res => {
       this.personas.set(res.items);
 
-      // Load influence events from the export endpoint
       this.api.get<any>(`/simulations/${this.simId}/export/json`).subscribe({
         next: (data) => {
           const influenceEvents: InfluenceEvent[] = data.influence_events || [];
           this.events.set(influenceEvents);
           this.buildSankeyChart(influenceEvents, res.items);
           this.buildTopInfluencers(influenceEvents, res.items);
-          this.loading.set(false);
+
+          // Fallback: Top-Poster aus Posts berechnen
+          this.postService.list(this.simId, { limit: 500 }).subscribe(postRes => {
+            this.buildTopPosters(postRes.items, res.items);
+            this.loading.set(false);
+          });
         },
         error: () => this.loading.set(false),
       });
     });
+  }
+
+  private buildTopPosters(posts: any[], personas: Persona[]) {
+    const countMap = new Map<string, number>();
+    for (const post of posts) {
+      countMap.set(post.author_id, (countMap.get(post.author_id) || 0) + 1);
+    }
+    const personaMap = new Map(personas.map(p => [p.id, p]));
+    const sorted = Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([id, count]) => {
+        const p = personaMap.get(id);
+        return { name: p?.name || 'Unbekannt', count, isSceptic: p?.is_skeptic || false };
+      });
+    this.topPosters.set(sorted);
   }
 
   private buildSankeyChart(events: InfluenceEvent[], personas: Persona[]) {
@@ -82,15 +110,23 @@ export class InfluenceComponent implements OnInit {
     topLinks.forEach(l => { usedNodes.add(l.source); usedNodes.add(l.target); });
 
     this.sankeyChart.set({
-      tooltip: { trigger: 'item' },
+      tooltip: { trigger: 'item', ...tooltipStyle },
       series: [{
         type: 'sankey',
         layout: 'none',
         emphasis: { focus: 'adjacency' },
-        data: Array.from(usedNodes).map(name => ({ name })),
+        nodeAlign: 'justify',
+        data: Array.from(usedNodes).map(name => ({
+          name,
+          itemStyle: { color: CHART.ink, borderColor: CHART.ink },
+        })),
         links: topLinks,
-        lineStyle: { color: 'gradient', curveness: 0.5 },
-        label: { fontSize: 11 },
+        lineStyle: { color: CHART.vermillion, opacity: 0.45, curveness: 0.5 },
+        label: {
+          fontFamily: FONT_SANS,
+          fontSize: 11,
+          color: CHART.ink,
+        },
       }],
     });
   }

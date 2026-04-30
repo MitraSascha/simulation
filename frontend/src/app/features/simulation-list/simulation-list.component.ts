@@ -40,15 +40,6 @@ export class SimulationListComponent implements OnInit {
     }
   }
 
-  getStatusColor(status: string): string {
-    switch (status) {
-      case 'running': return 'text-indigo-400';
-      case 'completed': return 'text-emerald-400';
-      case 'failed': return 'text-red-400';
-      default: return 'text-slate-500';
-    }
-  }
-
   getStatusLabel(status: string): string {
     switch (status) {
       case 'pending': return 'Ausstehend';

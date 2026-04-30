@@ -142,6 +142,8 @@ async def run_simulation_background(simulation_id: UUID):
             )
             existing_personas = result.scalars().all()
 
+            sim_provider_name = getattr(sim, "llm_provider", None)
+
             if not existing_personas:
                 persona_count = sim.config.get("persona_count", 10) if sim.config else 10
                 raw_personas = await generate_personas(
@@ -149,6 +151,7 @@ async def run_simulation_background(simulation_id: UUID):
                     target_market=sim.target_market or "",
                     industry=sim.industry or "",
                     persona_count=persona_count,
+                    provider_name=sim_provider_name,
                 )
                 logger.info(f"[{simulation_id}] {len(raw_personas)} Personas generiert")
                 for p_data in raw_personas:
@@ -158,9 +161,18 @@ async def run_simulation_background(simulation_id: UUID):
                         "values", "communication_style", "initial_opinion", "is_skeptic"
                     }
                     clean = {k: v for k, v in p_data.items() if k in allowed}
+
+                    # Initiale Plattform-Affinität aus preferred_platform ableiten
+                    preferred = p_data.get("preferred_platform", "feedbook")
+                    if preferred == "threadit":
+                        initial_affinity = {"feedbook": 0.3, "threadit": 0.7}
+                    else:
+                        initial_affinity = {"feedbook": 0.7, "threadit": 0.3}
+
                     persona = Persona(
                         simulation_id=simulation_id,
-                        current_state={},
+                        current_state={"platform_affinity": initial_affinity},
+                        extra={"preferred_platform": preferred},
                         **clean,
                     )
                     db.add(persona)
@@ -192,11 +204,7 @@ async def run_simulation_background(simulation_id: UUID):
                 await db.commit()
                 logger.info(f"[{simulation_id}] Tick {tick_num} abgeschlossen")
 
-            # 3. Analyse-Report
-            async with AsyncSessionLocal() as report_db:
-                await generate_report(simulation_id, report_db)
-
-            # 4. Abschluss
+            # 3. Abschluss (Report wird manuell über POST /analysis/{id}/generate ausgelöst)
             await db.execute(
                 update(Simulation)
                 .where(Simulation.id == simulation_id)

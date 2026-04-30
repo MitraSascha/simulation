@@ -5,6 +5,7 @@ services:
       - "8000:8000"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATABASE_URL=postgresql://sim_user:sim_pass@db:5432/simulation
     depends_on:
       db:

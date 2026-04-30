@@ -4,15 +4,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-import anthropic
 
 from app.database import get_db
-from app.config import settings
+from app.llm import get_provider
 from app.models.persona import Persona
+from app.models.simulation import Simulation
 from app.schemas.chat import ChatRequest, ChatResponse, ChatMessage
 
 router = APIRouter()
-async_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 
 @router.post("/personas/{persona_id}/chat", response_model=ChatResponse)
@@ -25,6 +24,15 @@ async def chat_with_persona(
     persona = result.scalar_one_or_none()
     if persona is None:
         raise HTTPException(status_code=404, detail="Persona nicht gefunden")
+
+    sim_provider_name: str | None = None
+    sim_result = await db.execute(
+        select(Simulation).where(Simulation.id == persona.simulation_id)
+    )
+    sim = sim_result.scalar_one_or_none()
+    if sim is not None:
+        sim_provider_name = getattr(sim, "llm_provider", None)
+    provider = get_provider(sim_provider_name)
 
     current_state: dict = persona.current_state or {}
 
@@ -44,33 +52,20 @@ async def chat_with_persona(
         f"Antworte auf Deutsch, kurz und natürlich (wie in einem echten Gespräch)."
     )
 
-    # Bisherige History auf max 10 Nachrichten begrenzen, dann neue User-Message anhängen
-    history_window = body.history[-10:]
+    # Frontend manages history; last message is the current user turn
     messages_payload = [
         {"role": msg.role, "content": msg.content}
-        for msg in history_window
+        for msg in body.messages[-20:]
     ]
-    messages_payload.append({"role": "user", "content": body.message})
 
-    response = await async_client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=512,
+    assistant_text = await provider.chat(
+        tier="smart",
         system=system_prompt,
         messages=messages_payload,
+        max_tokens=512,
     )
 
-    assistant_text = response.content[0].text
-
-    # Aktualisierte History aufbauen: bisherige Window + neue User-Message + Antwort der Persona
-    updated_history = list(history_window) + [
-        ChatMessage(role="user", content=body.message),
-        ChatMessage(role="assistant", content=assistant_text),
-    ]
-    # Auf max 20 Einträge kürzen (älteste raus)
-    updated_history = updated_history[-20:]
-
     return ChatResponse(
-        persona_name=persona.name,
-        message=assistant_text,
-        history=updated_history,
+        response=assistant_text,
+        persona_id=str(persona_id),
     )

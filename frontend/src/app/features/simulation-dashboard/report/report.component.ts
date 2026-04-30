@@ -30,7 +30,11 @@ export class ReportComponent implements OnInit {
     this.loading.set(true);
     this.analysisService.getReport(this.simId).subscribe({
       next: (r) => {
-        this.report.set(r);
+        if (r === null) {
+          this.noReport.set(true);
+        } else {
+          this.report.set(r);
+        }
         this.loading.set(false);
       },
       error: () => {
@@ -56,6 +60,25 @@ export class ReportComponent implements OnInit {
     const r = this.report();
     if (!r) return null;
     return (r as Record<string, any>)[key] || null;
+  }
+
+  hasSection(key: string): boolean {
+    const content = this.getSectionContent(key);
+    if (!content) return false;
+    const trimmed = content.trim();
+    if (!trimmed) return false;
+    // Treat common placeholder markers as "empty"
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('placeholder') || lower === '—' || lower === '-' || lower === 'n/a') return false;
+    return true;
+  }
+
+  scrollToSection(key: string): void {
+    if (!this.hasSection(key)) return;
+    const el = document.getElementById('section-' + key);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   readonly sections = [

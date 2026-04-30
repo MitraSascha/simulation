@@ -1,3 +1,5 @@
+export type LlmProvider = 'anthropic' | 'openai';
+
 export interface Simulation {
   id: string;
   name: string;
@@ -9,6 +11,7 @@ export interface Simulation {
   current_tick: number;
   total_ticks: number;
   webhook_url: string | null;
+  llm_provider: LlmProvider;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +41,7 @@ export interface SimulationCreate {
   target_market?: string;
   industry?: string;
   config?: SimulationConfig;
+  llm_provider?: LlmProvider;
 }
 
 export interface SimulationStreamEvent {

@@ -1,6 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { SlicePipe } from '@angular/common';
+import { ActivatedRoute, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { SimulationService } from '../../core/services/simulation.service';
 import { PersonaService } from '../../core/services/persona.service';
@@ -9,14 +8,19 @@ import { SseService } from '../../core/services/sse.service';
 import { Simulation } from '../../core/models/simulation.model';
 import { Persona } from '../../core/models/persona.model';
 import { Post } from '../../core/models/content.model';
+import { ActivityConsoleComponent } from '../../shared/components/activity-console.component';
+
+interface Tab { route: string; label: string; icon: string; }
+
 @Component({
   selector: 'app-simulation-dashboard',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, SlicePipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ActivityConsoleComponent],
   templateUrl: './simulation-dashboard.component.html',
 })
 export class SimulationDashboardComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private simService = inject(SimulationService);
   private personaService = inject(PersonaService);
   private postService = inject(PostService);
@@ -28,10 +32,35 @@ export class SimulationDashboardComponent implements OnInit, OnDestroy {
   posts = signal<Post[]>([]);
   loading = signal(true);
 
-  private simulationId = '';
+  // Header-Zustand: kollabiert/expandiert (LocalStorage-persistiert)
+  headerCollapsed = signal<boolean>(localStorage.getItem('mitra_header_collapsed') === '1');
+
+  simulationId = '';
+
+  toggleHeader() {
+    const next = !this.headerCollapsed();
+    this.headerCollapsed.set(next);
+    localStorage.setItem('mitra_header_collapsed', next ? '1' : '0');
+  }
+
+  readonly tabs: Tab[] = [
+    { route: 'overview',  label: 'Übersicht',  icon: 'pi-chart-bar' },
+    { route: 'personas',  label: 'Personas',   icon: 'pi-users' },
+    { route: 'network',   label: 'Netzwerk',   icon: 'pi-share-alt' },
+    { route: 'sentiment', label: 'Sentiment',  icon: 'pi-chart-line' },
+    { route: 'influence', label: 'Einfluss',   icon: 'pi-arrows-alt' },
+    { route: 'report',    label: 'Report',     icon: 'pi-file' },
+    { route: 'tools',     label: 'Werkzeuge',  icon: 'pi-wrench' },
+  ];
+
+  private static readonly UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   ngOnInit() {
     this.simulationId = this.route.snapshot.params['id'];
+    if (!SimulationDashboardComponent.UUID_RE.test(this.simulationId)) {
+      this.router.navigate(['/simulations']);
+      return;
+    }
     this.loadData();
   }
 
@@ -68,10 +97,15 @@ export class SimulationDashboardComponent implements OnInit, OnDestroy {
         } : sim);
 
         if (event.status === 'completed') {
-          this.loadData(); // Reload all data after completion
+          this.loadData();
         }
       },
     });
+  }
+
+  tabCounter(route: string): number | null {
+    if (route === 'personas') return this.personas().length || null;
+    return null;
   }
 
   get progress(): number {
@@ -79,13 +113,4 @@ export class SimulationDashboardComponent implements OnInit, OnDestroy {
     if (!sim || !sim.total_ticks) return 0;
     return Math.round((sim.current_tick / sim.total_ticks) * 100);
   }
-
-  readonly tabs = [
-    { label: 'Übersicht', route: 'overview', icon: 'pi-chart-bar' },
-    { label: 'Netzwerk', route: 'network', icon: 'pi-sitemap' },
-    { label: 'Influence', route: 'influence', icon: 'pi-arrows-alt' },
-    { label: 'Sentiment', route: 'sentiment', icon: 'pi-chart-line' },
-    { label: 'Personas', route: 'personas', icon: 'pi-users' },
-    { label: 'Report', route: 'report', icon: 'pi-file' },
-  ];
 }

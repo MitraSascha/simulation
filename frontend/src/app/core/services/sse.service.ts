@@ -7,7 +7,9 @@ import { SimulationStreamEvent } from '../models/simulation.model';
 export class SseService {
   connect(simulationId: string): Observable<SimulationStreamEvent> {
     return new Observable(subscriber => {
-      const url = `${environment.apiUrl}/simulations/${simulationId}/stream`;
+      // EventSource kann keine Custom-Header senden — Key als Query-Param.
+      const apiKey = localStorage.getItem('sim_api_key') || '';
+      const url = `${environment.apiUrl}/simulations/${simulationId}/stream?api_key=${encodeURIComponent(apiKey)}`;
       const eventSource = new EventSource(url);
 
       eventSource.onmessage = (event) => {

@@ -105,11 +105,12 @@ app.include_router(
     dependencies=[Depends(verify_api_key)],
 )
 # SSE stream router — routes already carry the full /simulations/... path
+# Auth wird per-Route via verify_api_key_header_or_query gemacht (Header ODER ?api_key=),
+# damit Browser-EventSource ohne Custom-Header authentifizieren kann.
 app.include_router(
     stream.router,
     prefix="",
     tags=["stream"],
-    dependencies=[Depends(verify_api_key)],
 )
 # Chat interface for individual personas
 app.include_router(

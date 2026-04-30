@@ -33,6 +33,7 @@ class Simulation(Base):
     current_tick = Column(Integer, default=0)
     total_ticks = Column(Integer, default=15)
     webhook_url = Column(String(2048), nullable=True)   # Optional: URL für Completion-Notification
+    llm_provider = Column(String(32), nullable=False, default="anthropic")   # "anthropic" | "openai"
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 

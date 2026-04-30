@@ -1,92 +1,263 @@
-<div class="space-y-6 animate-fade-in">
-  <div>
-    <h2 class="text-lg font-semibold text-white">Influence-Tracking</h2>
-    <p class="text-xs text-slate-500 mt-0.5">Verfolge, wie Meinungen und Einfluss sich ausbreiten</p>
+<div class="animate-fade-in">
+
+  <!-- Section Header -->
+  <div class="mb-6">
+    <h2 style="font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em;">
+      Einfluss
+    </h2>
+    <p style="font-size: 14px; color: var(--ink-3); margin-top: 6px; max-width: 640px;">
+      Wie Meinungen wandern und das Narrativ entsteht.
+    </p>
   </div>
 
   @if (loading()) {
-    <div class="flex justify-center py-16" role="status" aria-label="Influence-Daten werden geladen">
-      <i class="pi pi-spin pi-spinner text-3xl text-indigo-500"></i>
+    <div class="py-16 text-center" role="status">
+      <span class="badge badge-primary">
+        <i class="pi pi-spin pi-spinner"></i>
+        Wird verfolgt
+      </span>
     </div>
   } @else {
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Sankey Diagram -->
-      <div class="lg:col-span-2 glass-card rounded-xl border border-white/[0.06] p-5">
-        <h3 class="text-sm font-semibold text-white mb-4">Influence-Flow (Top 20)</h3>
-        @if (events().length > 0) {
-          <div echarts [options]="sankeyChart()" class="h-96"
-               role="img" aria-label="Sankey-Diagramm: Zeigt den Einflussfluss zwischen Personas"></div>
-        } @else {
-          <div class="h-96 flex flex-col items-center justify-center text-center">
-            <div class="w-14 h-14 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-3">
-              <i class="pi pi-share-alt text-xl text-slate-600"></i>
-            </div>
-            <p class="text-sm text-slate-500">Keine Influence-Events vorhanden</p>
-            <p class="text-xs text-slate-600 mt-1">Events werden waehrend der Simulation erzeugt</p>
-          </div>
-        }
-      </div>
 
-      <!-- Top Influencers -->
-      <div class="glass-card rounded-xl border border-white/[0.06] p-5" role="region" aria-label="Top Influencer Rangliste">
-        <h3 class="text-sm font-semibold text-white mb-4">Top Influencer</h3>
-        <div class="space-y-3">
-          @for (inf of topInfluencers(); track inf.name; let i = $index) {
-            <div class="flex items-center gap-3">
-              <!-- Rank Badge: Gold / Silver / Bronze / Default -->
-              <div [class]="i === 0
-                ? 'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-gradient-to-br from-amber-400 to-yellow-600 text-amber-950 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
-                : i === 1
-                  ? 'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-gradient-to-br from-slate-300 to-slate-400 text-slate-800 shadow-sm'
-                  : i === 2
-                    ? 'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-gradient-to-br from-orange-400 to-orange-700 text-orange-950 shadow-sm'
-                    : 'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/[0.06] text-slate-400'"
-                aria-label="Rang {{ i + 1 }}">
-                {{ i + 1 }}
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-white truncate">
-                  {{ inf.name }}
-                  @if (inf.isSceptic) {
-                    <span class="ml-1 text-xs text-purple-400">(Skeptiker)</span>
-                  }
-                </p>
-                <div class="w-full bg-white/[0.04] rounded-full h-1.5 mt-1 overflow-hidden">
-                  <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-amber-400 transition-all duration-500"
-                       [style.width.%]="topInfluencers().length > 0 ? (inf.count / topInfluencers()[0].count) * 100 : 0"></div>
-                </div>
-              </div>
-              <span class="text-sm font-bold text-amber-500 tabular-nums">{{ inf.count }}</span>
-            </div>
-          }
-          @if (topInfluencers().length === 0) {
-            <div class="flex flex-col items-center justify-center py-6 text-center">
-              <i class="pi pi-star text-2xl text-slate-600 mb-2"></i>
-              <p class="text-sm text-slate-500">Keine Daten</p>
-            </div>
-          }
+    <!-- ==========================================================
+         Empty-State: Bei completed-Sims mit 0 Events erklären
+         ========================================================== -->
+    @if (events().length === 0 && simulation()?.status === 'completed') {
+      <div class="card card-accent card-info animate-fade-in" style="padding: 20px 24px; margin-bottom: 20px;">
+        <div class="flex items-start gap-3">
+          <i class="pi pi-info-circle" style="font-size: 18px; color: var(--info); margin-top: 2px;"></i>
+          <div style="flex: 1;">
+            <p style="font-size: 14.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px;">
+              Diese Simulation hat keine Einfluss-Ereignisse aufgezeichnet.
+            </p>
+            <p style="font-size: 13.5px; color: var(--ink-3); line-height: 1.5;">
+              Einfluss-Ereignisse entstehen, wenn eine Persona ihre Meinung
+              <strong>aufgrund eines fremden Beitrags</strong> tatsächlich ändert.
+              Bei kleinen Simulationen mit wenigen Personas oder Tagen kommt das selten vor —
+              die Meinungen festigen sich nur. Größere Simulationen
+              (30+ Personas · 15+ Tage) liefern typischerweise dutzende Ereignisse.
+            </p>
+            <p style="font-size: 13.5px; color: var(--ink-3); line-height: 1.5; margin-top: 8px;">
+              Als Ersatz zeigen wir unten die <strong>aktivsten Stimmen</strong> —
+              Personas mit den meisten Beiträgen.
+            </p>
+          </div>
         </div>
       </div>
+    }
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+
+      <!-- Sankey -->
+      <section class="card lg:col-span-2" style="padding: 24px;" role="region" aria-label="Influence Flow">
+        <header class="flex items-center justify-between mb-4">
+          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+            Einfluss-Strömung
+          </h3>
+          <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
+            @if (events().length > 0) { Top 20 } @else { Keine Daten }
+          </span>
+        </header>
+        @if (events().length > 0) {
+          <div echarts [options]="sankeyChart()" class="h-[420px]"
+               role="img" aria-label="Sankey-Diagramm Einflussfluss"></div>
+        } @else {
+          <div class="h-[420px] flex flex-col items-center justify-center text-center" style="padding: 0 32px;">
+            <i class="pi pi-share-alt" style="font-size: 36px; color: var(--ink-4); margin-bottom: 16px;"></i>
+            <p style="font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px;">
+              @if (simulation()?.status === 'running') {
+                Noch keine Bewegung
+              } @else if (simulation()?.status === 'completed') {
+                Keine Strömungen entstanden
+              } @else {
+                Warte auf Simulation
+              }
+            </p>
+            <p style="font-size: 13.5px; color: var(--ink-3); max-width: 340px;">
+              @if (simulation()?.status === 'running') {
+                Ereignisse entstehen während die Simulation läuft.
+              } @else {
+                Bei dieser Simulation haben keine Personas ihre Meinung
+                aufgrund fremder Beiträge geändert.
+              }
+            </p>
+          </div>
+        }
+      </section>
+
+      <!-- Top-Liste: entweder Influencer (mit Events) oder aktivste Stimmen (Fallback) -->
+      <section class="card" style="padding: 24px;" role="region" aria-label="Rangliste">
+        <header class="flex items-center justify-between mb-2">
+          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+            @if (events().length > 0) {
+              Top-Influencer
+            } @else {
+              Aktivste Stimmen
+            }
+          </h3>
+          @if (events().length === 0 && topPosters().length > 0) {
+            <span class="badge badge-muted" style="font-size: 10.5px;">Fallback</span>
+          }
+        </header>
+
+        @if (events().length > 0 && topInfluencers().length > 0) {
+          <p style="font-size: 12.5px; color: var(--ink-3); margin-bottom: 14px; line-height: 1.45;">
+            Personas, die andere am häufigsten beeinflusst haben.
+          </p>
+          <ol class="influencer-list">
+            @for (inf of topInfluencers(); track inf.name; let i = $index) {
+              <li class="influencer-row">
+                <div class="influencer-head">
+                  <span class="influencer-rank">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                  <span class="influencer-name">{{ inf.name }}</span>
+                  @if (inf.isSceptic) {
+                    <span class="badge badge-danger" style="font-size: 10.5px; padding: 2px 8px;">Skeptiker</span>
+                  }
+                  <span class="influencer-count">{{ inf.count }}</span>
+                </div>
+                <div class="influencer-bar">
+                  <div class="influencer-bar-fill"
+                       [style.width.%]="topInfluencers().length > 0 ? (inf.count / topInfluencers()[0].count) * 100 : 0"></div>
+                </div>
+              </li>
+            }
+          </ol>
+        } @else if (topPosters().length > 0) {
+          <p style="font-size: 12.5px; color: var(--ink-3); margin-bottom: 14px; line-height: 1.45;">
+            Personas mit den meisten Beiträgen — Proxy für Reichweite.
+          </p>
+          <ol class="influencer-list">
+            @for (inf of topPosters(); track inf.name; let i = $index) {
+              <li class="influencer-row">
+                <div class="influencer-head">
+                  <span class="influencer-rank">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                  <span class="influencer-name">{{ inf.name }}</span>
+                  @if (inf.isSceptic) {
+                    <span class="badge badge-danger" style="font-size: 10.5px; padding: 2px 8px;">Skeptiker</span>
+                  }
+                  <span class="influencer-count">{{ inf.count }}</span>
+                </div>
+                <div class="influencer-bar">
+                  <div class="influencer-bar-fill"
+                       [style.width.%]="topPosters().length > 0 ? (inf.count / topPosters()[0].count) * 100 : 0"
+                       style="background: var(--ink-3);"></div>
+                </div>
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="text-center py-12" style="color: var(--ink-3); font-size: 13.5px;">
+            Keine Daten vorhanden.
+          </p>
+        }
+      </section>
     </div>
 
     <!-- Event Timeline -->
     @if (events().length > 0) {
-      <div class="glass-card rounded-xl border border-white/[0.06] p-5" role="region" aria-label="Influence-Events Zeitleiste">
-        <h3 class="text-sm font-semibold text-white mb-4">Influence-Events (chronologisch)</h3>
-        <div class="relative max-h-64 overflow-y-auto pl-6">
-          <!-- Timeline vertical line -->
-          <div class="absolute left-[9px] top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500/30 via-indigo-500/20 to-transparent"></div>
-
+      <section class="card" style="padding: 24px;" role="region" aria-label="Influence-Events Timeline">
+        <header class="flex items-center justify-between mb-4">
+          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+            Einfluss-Ereignisse (chronologisch)
+          </h3>
+          <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
+            {{ events().length }} Ereignisse
+          </span>
+        </header>
+        <ol class="chronik">
           @for (event of events().slice(0, 50); track event.id) {
-            <div class="relative flex items-start gap-3 py-2 group">
-              <!-- Timeline dot -->
-              <div class="absolute -left-6 top-3 w-2 h-2 rounded-full bg-indigo-500/60 border border-indigo-400/40 group-hover:bg-indigo-400 group-hover:shadow-[0_0_6px_rgba(99,102,241,0.4)] transition-all duration-200"></div>
-              <span class="text-xs font-semibold text-indigo-400 w-14 shrink-0 tabular-nums">Tag {{ event.ingame_day }}</span>
-              <span class="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">{{ event.description }}</span>
-            </div>
+            <li class="chronik-row">
+              <span class="chronik-day">Tag {{ event.ingame_day }}</span>
+              <p class="chronik-text">{{ event.description }}</p>
+            </li>
           }
-        </div>
-      </div>
+        </ol>
+      </section>
     }
   }
 </div>
+
+<style>
+  .influencer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .influencer-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .influencer-row:last-child { border-bottom: none; }
+  .influencer-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .influencer-rank {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink-3);
+    flex-shrink: 0;
+    min-width: 28px;
+    font-variant-numeric: tabular-nums;
+  }
+  .influencer-name {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--ink);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .influencer-count {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .influencer-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .influencer-bar-fill {
+    height: 100%;
+    background: var(--ink);
+    border-radius: 999px;
+    transition: width 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .chronik {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .chronik-row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 12px;
+    padding: 10px 0;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+  }
+  .chronik-row:last-child { border-bottom: none; }
+  .chronik-day {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--primary);
+  }
+  .chronik-text {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+</style>

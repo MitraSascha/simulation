@@ -23,12 +23,27 @@ export const routes: Routes = [
     loadComponent: () => import('./features/simulation-dashboard/simulation-dashboard.component').then(c => c.SimulationDashboardComponent),
     children: [
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
-      { path: 'overview', loadComponent: () => import('./features/simulation-dashboard/overview/overview.component').then(c => c.OverviewComponent) },
-      { path: 'network', loadComponent: () => import('./features/simulation-dashboard/network/network.component').then(c => c.NetworkComponent) },
-      { path: 'influence', loadComponent: () => import('./features/simulation-dashboard/influence/influence.component').then(c => c.InfluenceComponent) },
+
+      // Flache Tabs
+      { path: 'overview',  loadComponent: () => import('./features/simulation-dashboard/overview/overview.component').then(c => c.OverviewComponent) },
+      { path: 'personas',  loadComponent: () => import('./features/simulation-dashboard/personas/personas.component').then(c => c.PersonasComponent) },
+      { path: 'network',   loadComponent: () => import('./features/simulation-dashboard/network/network.component').then(c => c.NetworkComponent) },
       { path: 'sentiment', loadComponent: () => import('./features/simulation-dashboard/sentiment/sentiment.component').then(c => c.SentimentComponent) },
-      { path: 'personas', loadComponent: () => import('./features/simulation-dashboard/personas/personas.component').then(c => c.PersonasComponent) },
-      { path: 'report', loadComponent: () => import('./features/simulation-dashboard/report/report.component').then(c => c.ReportComponent) },
+      { path: 'influence', loadComponent: () => import('./features/simulation-dashboard/influence/influence.component').then(c => c.InfluenceComponent) },
+      { path: 'report',    loadComponent: () => import('./features/simulation-dashboard/report/report.component').then(c => c.ReportComponent) },
+      { path: 'tools',     loadComponent: () => import('./features/simulation-dashboard/tools/tools.component').then(c => c.ToolsComponent) },
+
+      // Backwards-Compat: alte URLs auf neue Struktur
+      { path: 'karte',            redirectTo: 'network',   pathMatch: 'full' },
+      { path: 'karte/network',    redirectTo: 'network',   pathMatch: 'full' },
+      { path: 'karte/personas',   redirectTo: 'personas',  pathMatch: 'full' },
+      { path: 'studie',           redirectTo: 'overview',  pathMatch: 'full' },
+      { path: 'studie/overview',  redirectTo: 'overview',  pathMatch: 'full' },
+      { path: 'studie/sentiment', redirectTo: 'sentiment', pathMatch: 'full' },
+      { path: 'studie/influence', redirectTo: 'influence', pathMatch: 'full' },
+      { path: 'gespraech',        redirectTo: 'report',    pathMatch: 'full' },
+      { path: 'gespraech/report', redirectTo: 'report',    pathMatch: 'full' },
+      { path: 'gespraech/chat',   redirectTo: 'tools',     pathMatch: 'full' },
     ],
   },
   { path: '**', redirectTo: 'simulations' },

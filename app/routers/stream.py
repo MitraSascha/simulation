@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import verify_api_key_header_or_query
 from app.database import AsyncSessionLocal, get_db
 from app.models.simulation import Simulation, SimulationStatus
 
@@ -37,6 +38,7 @@ async def event_generator(simulation_id: UUID):
 async def stream_simulation(
     simulation_id: UUID,
     db: AsyncSession = Depends(get_db),
+    _: object = Depends(verify_api_key_header_or_query),
 ):
     """SSE endpoint — streams live simulation progress every 2 seconds.
 

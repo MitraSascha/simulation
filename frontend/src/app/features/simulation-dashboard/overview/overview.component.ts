@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, effect } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import * as echarts from 'echarts';
@@ -8,13 +8,15 @@ import { PostService } from '../../../core/services/post.service';
 import { Simulation, SimulationStats, TickSnapshot } from '../../../core/models/simulation.model';
 import { Post } from '../../../core/models/content.model';
 import { Persona } from '../../../core/models/persona.model';
-import { KpiCardComponent } from '../../../shared/components/kpi-card.component';
 import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
+import { CHART, FONT_SANS, tooltipStyle, axisCommon, legendCommon } from '../../../shared/chart-theme';
+
+interface MoodBucket { key: string; label: string; color: string; count: number; }
 
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [NgxEchartsDirective, KpiCardComponent, TruncatePipe, RouterLink],
+  imports: [NgxEchartsDirective, TruncatePipe, RouterLink],
   providers: [provideEchartsCore({ echarts })],
   templateUrl: './overview.component.html',
 })
@@ -29,14 +31,41 @@ export class OverviewComponent implements OnInit {
   ticks = signal<TickSnapshot[]>([]);
   posts = signal<Post[]>([]);
   personas = signal<Persona[]>([]);
-  chartOption = signal<any>({});
-  selectedPersona = signal<Persona | null>(null);
+  activityChartOption = signal<any>({});
+  moodChartOption = signal<any>({});
 
   private simId = '';
 
   // Derived
-  recentPosts = computed(() => [...this.posts()].sort((a, b) => b.ingame_day - a.ingame_day).slice(0, 15));
+  recentPosts = computed(() => [...this.posts()].sort((a, b) => b.ingame_day - a.ingame_day).slice(0, 8));
   skepticCount = computed(() => this.personas().filter(p => p.is_skeptic).length);
+
+  moodBuckets = computed<MoodBucket[]>(() => {
+    const buckets: MoodBucket[] = [
+      { key: 'positiv',  label: 'Positiv',   color: CHART.moss,       count: 0 },
+      { key: 'neugier',  label: 'Neugierig', color: CHART.feedbook,   count: 0 },
+      { key: 'neutral',  label: 'Neutral',   color: CHART.inkMute,    count: 0 },
+      { key: 'skepti',   label: 'Skeptisch', color: CHART.threadit,   count: 0 },
+      { key: 'negativ',  label: 'Negativ',   color: CHART.vermillion, count: 0 },
+    ];
+    for (const p of this.personas()) {
+      const m = (p.current_state?.mood || '').toLowerCase();
+      if (!m) { buckets[2].count++; continue; }
+      if (m.includes('positiv') || m.includes('begeistert')) buckets[0].count++;
+      else if (m.includes('neugier')) buckets[1].count++;
+      else if (m.includes('skepti') || m.includes('kritisch')) buckets[3].count++;
+      else if (m.includes('negativ') || m.includes('genervt') || m.includes('frustr')) buckets[4].count++;
+      else buckets[2].count++;
+    }
+    return buckets;
+  });
+
+  constructor() {
+    effect(() => {
+      const buckets = this.moodBuckets();
+      this.buildMoodChart(buckets);
+    });
+  }
 
   ngOnInit() {
     this.simId = this.route.parent!.snapshot.params['id'];
@@ -46,38 +75,78 @@ export class OverviewComponent implements OnInit {
   private loadData() {
     this.simService.getById(this.simId).subscribe(s => this.simulation.set(s));
     this.simService.getStats(this.simId).subscribe(s => this.stats.set(s));
-    this.simService.getTicks(this.simId).subscribe(t => { this.ticks.set(t); this.buildChart(t); });
+    this.simService.getTicks(this.simId).subscribe(t => { this.ticks.set(t); this.buildActivityChart(t); });
     this.postService.list(this.simId, { limit: 200 }).subscribe(r => this.posts.set(r.items));
     this.personaService.list(this.simId, { limit: 200 }).subscribe(r => this.personas.set(r.items));
   }
 
-  private buildChart(ticks: TickSnapshot[]) {
-    this.chartOption.set({
+  private buildActivityChart(ticks: TickSnapshot[]) {
+    this.activityChartOption.set({
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', backgroundColor: '#1e1e3f', borderColor: 'rgba(99,102,241,0.3)', textStyle: { color: '#e2e8f0', fontSize: 12 } },
-      legend: { data: ['Posts', 'Kommentare', 'Reaktionen'], bottom: 0, textStyle: { color: '#64748b', fontSize: 11 } },
-      grid: { top: 16, right: 16, bottom: 36, left: 44 },
-      xAxis: { type: 'category', data: ticks.map(t => `${t.ingame_day}`), axisLabel: { color: '#475569', fontSize: 10 }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } }, splitLine: { show: false } },
-      yAxis: { type: 'value', axisLabel: { color: '#475569', fontSize: 10 }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.04)' } } },
+      tooltip: { trigger: 'axis', ...tooltipStyle },
+      legend: legendCommon(['Beiträge', 'Kommentare', 'Reaktionen']),
+      grid: { top: 16, right: 16, bottom: 44, left: 44 },
+      xAxis: {
+        type: 'category',
+        data: ticks.map(t => `${t.ingame_day}`),
+        ...axisCommon({
+          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11, formatter: (v: string) => `T${v}` },
+          splitLine: { show: false },
+        }),
+      },
+      yAxis: {
+        type: 'value',
+        ...axisCommon({
+          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11 },
+        }),
+      },
       series: [
-        { name: 'Posts', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_posts), itemStyle: { color: '#6366f1', borderRadius: [4,4,0,0] }, barWidth: '60%' },
-        { name: 'Kommentare', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_comments), itemStyle: { color: '#8b5cf6' } },
-        { name: 'Reaktionen', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_reactions), itemStyle: { color: '#a855f7' } },
+        { name: 'Beiträge',   type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_posts),     itemStyle: { color: CHART.ink, borderRadius: [2, 2, 0, 0] }, barWidth: '55%' },
+        { name: 'Kommentare', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_comments),  itemStyle: { color: CHART.vermillion } },
+        { name: 'Reaktionen', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_reactions), itemStyle: { color: CHART.threadit } },
+      ],
+    });
+  }
+
+  private buildMoodChart(buckets: MoodBucket[]) {
+    this.moodChartOption.set({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, ...tooltipStyle },
+      grid: { top: 8, right: 16, bottom: 28, left: 90 },
+      xAxis: {
+        type: 'value',
+        ...axisCommon({
+          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11 },
+          splitLine: { lineStyle: { color: CHART.paperEdge, type: 'dashed' } },
+        }),
+      },
+      yAxis: {
+        type: 'category',
+        data: buckets.map(b => b.label),
+        inverse: true,
+        ...axisCommon({
+          axisLabel: { color: CHART.ink, fontFamily: FONT_SANS, fontSize: 12, fontWeight: 500 },
+          splitLine: { show: false },
+        }),
+      },
+      series: [
+        {
+          type: 'bar',
+          data: buckets.map(b => ({ value: b.count, itemStyle: { color: b.color, borderRadius: [0, 4, 4, 0] } })),
+          barWidth: 22,
+          label: { show: true, position: 'right', color: CHART.ink, fontFamily: FONT_SANS, fontSize: 11, fontWeight: 600 },
+        },
       ],
     });
   }
 
   getMoodColor(mood: string | undefined): string {
-    if (!mood) return '#64748b';
+    if (!mood) return CHART.inkMute;
     const m = mood.toLowerCase();
-    if (m.includes('positiv') || m.includes('begeistert')) return '#10b981';
-    if (m.includes('negativ') || m.includes('genervt') || m.includes('frustr')) return '#ef4444';
-    if (m.includes('skepti') || m.includes('kritisch')) return '#f59e0b';
-    if (m.includes('neugier')) return '#3b82f6';
-    return '#64748b';
-  }
-
-  selectPersona(p: Persona) {
-    this.selectedPersona.set(this.selectedPersona()?.id === p.id ? null : p);
+    if (m.includes('positiv') || m.includes('begeistert')) return CHART.moss;
+    if (m.includes('negativ') || m.includes('genervt') || m.includes('frustr')) return CHART.vermillion;
+    if (m.includes('skepti') || m.includes('kritisch')) return CHART.threadit;
+    if (m.includes('neugier')) return CHART.feedbook;
+    return CHART.inkMute;
   }
 }

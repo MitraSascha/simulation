@@ -1,226 +1,491 @@
-<div class="p-8 max-w-3xl mx-auto">
-  <!-- Back + Title -->
-  <div class="mb-8 animate-fade-in">
-    <a routerLink="/simulations"
-       aria-label="Zurueck zur Uebersicht"
-       class="text-xs text-slate-500 hover:text-indigo-400 transition-colors inline-flex items-center gap-1 mb-4 focus:outline-none focus:text-indigo-400">
-      <i class="pi pi-arrow-left text-[10px]" aria-hidden="true"></i> Zurueck
-    </a>
-    <h1 class="text-2xl font-bold text-white">Neue Simulation</h1>
-    <p class="text-sm text-slate-500 mt-1">Konfiguriere dein Simulations-Szenario</p>
-  </div>
+<div class="page page-narrow" style="padding-bottom: 120px;">
 
-  <!-- Step Indicator -->
-  <div class="flex items-center gap-3 mb-10 animate-fade-in-delay-1" role="navigation" aria-label="Fortschrittsanzeige">
-    @for (step of [{n:1, label:'Szenario'}, {n:2, label:'Konfiguration'}, {n:3, label:'Start'}]; track step.n) {
-      <div class="flex items-center gap-3" [class.flex-1]="step.n < 3">
-        <div class="flex items-center gap-2">
-          <div [class]="step.n <= currentStep()
-            ? 'w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold step-indicator-active'
-            : 'w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.08] text-slate-600 flex items-center justify-center text-xs step-indicator'"
-               [attr.aria-label]="'Schritt ' + step.n + ': ' + step.label + (step.n < currentStep() ? ' (abgeschlossen)' : step.n === currentStep() ? ' (aktuell)' : '')">
-            @if (step.n < currentStep()) {
-              <i class="pi pi-check text-xs" aria-hidden="true"></i>
-            } @else {
-              {{ step.n }}
-            }
-          </div>
-          <span [class]="step.n <= currentStep() ? 'text-xs font-medium text-indigo-400' : 'text-xs text-slate-600'">{{ step.label }}</span>
+  <!-- Back link -->
+  <a routerLink="/simulations"
+     aria-label="Zurück zu Simulationen"
+     class="btn btn-tertiary btn-sm animate-fade-in"
+     style="margin-bottom: 16px; padding-left: 0;">
+    <i class="pi pi-arrow-left" style="font-size: 11px;"></i>
+    <span>Zurück zu Simulationen</span>
+  </a>
+
+  <!-- Page Header -->
+  <header class="page-header animate-fade-in">
+    <h1 class="page-title">Neue Simulation erstellen</h1>
+    <p class="page-subtitle">In drei Schritten: Szenario beschreiben, Parameter wählen, prüfen und starten.</p>
+  </header>
+
+  <!-- Stepper -->
+  <nav class="stepper animate-fade-in-delay-1" aria-label="Fortschritt">
+    @for (step of [{n:1, label:'Szenario'}, {n:2, label:'Parameter'}, {n:3, label:'Prüfen'}]; track step.n; let last = $last) {
+      <div class="step"
+           [class.step-active]="step.n === currentStep()"
+           [class.step-done]="step.n < currentStep()">
+        <div class="step-circle">
+          @if (step.n < currentStep()) {
+            <i class="pi pi-check" style="font-size: 13px;"></i>
+          } @else {
+            <span>{{ step.n }}</span>
+          }
         </div>
-        @if (step.n < 3) {
-          <div class="flex-1 h-px transition-colors duration-500" [class]="step.n < currentStep() ? 'bg-indigo-600' : 'bg-white/[0.06]'"></div>
-        }
+        <span class="step-label">{{ step.label }}</span>
       </div>
+      @if (!last) {
+        <div class="step-connector" [class.step-connector-done]="step.n < currentStep()"></div>
+      }
     }
-  </div>
+  </nav>
 
   <!-- Step 1: Szenario -->
   @if (currentStep() === 1) {
-    <div class="space-y-5 animate-step-in">
-      <div>
-        <label for="sim-name" class="block text-xs font-medium text-slate-400 mb-2">Simulationsname *</label>
-        <input id="sim-name" type="text" [ngModel]="name()" (ngModelChange)="name.set($event)"
-               placeholder="z.B. E-Auto Launch Q3 2026"
+    <section class="card animate-fade-in" style="padding: 32px;">
+      <h2 class="h3" style="margin-bottom: 6px;">Was soll vermessen werden?</h2>
+      <p style="color: var(--ink-3); font-size: 14px; margin-bottom: 24px;">
+        Beschreibe das Produkt, die Kampagne oder die Idee — je präziser, desto realistischer reagieren die Personas.
+      </p>
+
+      <div class="field">
+        <label for="sim-name" class="label-required">Titel der Simulation</label>
+        <input id="sim-name" type="text"
+               [ngModel]="name()" (ngModelChange)="name.set($event)"
+               placeholder='z. B. "E-Auto Launch Q3 2026"'
                aria-required="true"
-               [attr.aria-invalid]="name().trim().length === 0 ? 'true' : 'false'"
-               class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/20 transition-all" />
+               class="input input-lg" />
       </div>
 
-      <div>
-        <label for="sim-desc" class="block text-xs font-medium text-slate-400 mb-2">Produktbeschreibung *</label>
-        <textarea id="sim-desc" [ngModel]="productDescription()" (ngModelChange)="productDescription.set($event)"
-                  rows="4" placeholder="Beschreibe das Produkt, die Kampagne oder Idee..."
+      <div class="field">
+        <label for="sim-desc" class="label-required">Produktbeschreibung</label>
+        <textarea id="sim-desc"
+                  [ngModel]="productDescription()" (ngModelChange)="productDescription.set($event)"
+                  rows="5"
+                  placeholder="Beschreibe das Produkt, die Kampagne oder Idee in zwei bis drei Sätzen …"
                   aria-required="true"
-                  [attr.aria-invalid]="productDescription().trim().length <= 10 ? 'true' : 'false'"
-                  class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none"></textarea>
-        <p class="text-[11px] text-slate-600 mt-1" id="desc-hint">Je detaillierter die Beschreibung, desto realistischer die Simulation</p>
+                  class="input"></textarea>
+        <p class="label-hint">Faustregel: Personas reagieren ehrlicher auf konkrete Beschreibungen.</p>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="sim-market" class="block text-xs font-medium text-slate-400 mb-2">Zielmarkt</label>
-          <input id="sim-market" type="text" [ngModel]="targetMarket()" (ngModelChange)="targetMarket.set($event)"
-                 placeholder="z.B. DACH, 25-45 Jahre"
-                 class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/20 transition-all" />
+      <div class="field-row">
+        <div class="field" style="margin-bottom: 0;">
+          <label for="sim-market">Zielmarkt <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+          <input id="sim-market" type="text"
+                 [ngModel]="targetMarket()" (ngModelChange)="targetMarket.set($event)"
+                 placeholder="z. B. DACH, 25–45 Jahre"
+                 class="input" />
         </div>
-        <div>
-          <label for="sim-industry" class="block text-xs font-medium text-slate-400 mb-2">Branche</label>
-          <input id="sim-industry" type="text" [ngModel]="industry()" (ngModelChange)="industry.set($event)"
-                 placeholder="z.B. Automobil, FinTech"
-                 class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.06] rounded-xl text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/20 transition-all" />
+        <div class="field" style="margin-bottom: 0;">
+          <label for="sim-industry">Branche <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+          <input id="sim-industry" type="text"
+                 [ngModel]="industry()" (ngModelChange)="industry.set($event)"
+                 placeholder="z. B. Automobil, FinTech"
+                 class="input" />
         </div>
       </div>
-    </div>
+    </section>
   }
 
-  <!-- Step 2: Configuration -->
+  <!-- Step 2: Parameter -->
   @if (currentStep() === 2) {
-    <div class="space-y-6 animate-step-in">
+    <section class="card animate-fade-in" style="padding: 32px;">
+      <h2 class="h3" style="margin-bottom: 6px;">Maßstab der Simulation</h2>
+      <p style="color: var(--ink-3); font-size: 14px; margin-bottom: 24px;">
+        Wähle ein Preset oder justiere manuell. Größere Simulationen liefern statistisch belastbarere Ergebnisse, kosten aber mehr.
+      </p>
+
       <!-- Presets -->
-      <div>
-        <label class="block text-xs font-medium text-slate-400 mb-3" id="preset-label">Szenario-Preset</label>
-        <div class="grid grid-cols-4 gap-3" role="radiogroup" aria-labelledby="preset-label">
+      <div style="margin-bottom: 28px;">
+        <label style="margin-bottom: 12px;" id="preset-label">Voreinstellungen</label>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3" role="radiogroup" aria-labelledby="preset-label">
           @for (preset of presets; track preset.label) {
-            <button (click)="applyPreset(preset)"
+            <button type="button"
+                    (click)="applyPreset(preset)"
                     role="radio"
                     [attr.aria-checked]="selectedPreset() === preset.label"
                     [attr.aria-label]="preset.label + ': ' + preset.desc"
-                    [class]="selectedPreset() === preset.label
-                      ? 'glass-card p-4 text-center preset-card-selected'
-                      : 'glass-card p-4 text-center cursor-pointer preset-card hover:scale-[1.03] transition-transform duration-200'">
-              <i [class]="'pi ' + preset.icon + ' text-lg mb-2 block'" [class.text-indigo-400]="selectedPreset() === preset.label" [class.text-slate-500]="selectedPreset() !== preset.label" aria-hidden="true"></i>
-              <p class="text-xs font-medium text-white">{{ preset.label }}</p>
-              <p class="text-[10px] text-slate-500 mt-1">{{ preset.desc }}</p>
+                    class="card card-hover preset-card"
+                    [class.preset-active]="selectedPreset() === preset.label">
+              <i class="pi" [class]="preset.icon" style="font-size: 20px; color: var(--primary); margin-bottom: 10px; display: block;"></i>
+              <p style="font-size: 14.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px;">{{ preset.label }}</p>
+              <p style="font-size: 12px; color: var(--ink-3); line-height: 1.4;">{{ preset.desc }}</p>
             </button>
           }
         </div>
       </div>
 
-      <!-- Fine-tuning -->
-      <div class="glass-card p-5">
-        <h3 class="text-sm font-medium text-white mb-4">Feinabstimmung</h3>
-        <div class="space-y-5">
-          <div>
-            <div class="flex justify-between text-xs mb-2">
-              <label for="persona-slider" class="text-slate-400">Personas</label>
-              <span class="text-indigo-400 font-bold" aria-live="polite">{{ personaCount() }}</span>
+      <!-- Provider-Auswahl -->
+      <div style="margin-bottom: 28px;">
+        <label style="margin-bottom: 12px;" id="provider-label">KI-Anbieter</label>
+        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="provider-label">
+          @for (p of providers; track p.id) {
+            <button type="button"
+                    (click)="llmProvider.set(p.id)"
+                    role="radio"
+                    [attr.aria-checked]="llmProvider() === p.id"
+                    [attr.aria-label]="p.label"
+                    class="card card-hover preset-card"
+                    [class.preset-active]="llmProvider() === p.id">
+              <i class="pi" [class]="p.icon" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
+              <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ p.label }}</p>
+              <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.35;">{{ p.sub }}</p>
+            </button>
+          }
+        </div>
+        <p class="label-hint" style="margin-top: 8px;">
+          Der gewählte Anbieter wird für diese Simulation festgehalten — Persona-Generierung, Tick-Loop, Report und Chat nutzen dasselbe Modell.
+        </p>
+      </div>
+
+      <!-- Sliders -->
+      <div style="margin-bottom: 28px;">
+        <label style="margin-bottom: 12px;">Feinabstimmung</label>
+        <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px;">
+          <div style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
+              <label for="persona-slider" style="margin-bottom: 0;">Anzahl Personas</label>
+              <span class="slider-value" aria-live="polite">{{ personaCount() }}</span>
             </div>
-            <input id="persona-slider" type="range" [ngModel]="personaCount()" (ngModelChange)="personaCount.set($event); selectedPreset.set('')"
-                   min="5" max="100" step="5"
+            <input id="persona-slider" type="range"
+                   [ngModel]="personaCount()" (ngModelChange)="setPersonaCount($event)"
+                   min="5" max="500" step="5"
                    aria-label="Anzahl Personas"
-                   [attr.aria-valuenow]="personaCount()"
-                   aria-valuemin="5" aria-valuemax="100"
-                   class="w-full range-slider" />
-          </div>
-          <div>
-            <div class="flex justify-between text-xs mb-2">
-              <label for="tick-slider" class="text-slate-400">Simulierte Tage</label>
-              <span class="text-indigo-400 font-bold" aria-live="polite">{{ tickCount() }}</span>
+                   class="range-slider" style="width: 100%;" />
+            <div class="slider-scale">
+              <span>5</span><span>100</span><span>250</span><span>500</span>
             </div>
-            <input id="tick-slider" type="range" [ngModel]="tickCount()" (ngModelChange)="tickCount.set($event); selectedPreset.set('')"
-                   min="5" max="30" step="1"
-                   aria-label="Anzahl simulierter Tage"
-                   [attr.aria-valuenow]="tickCount()"
-                   aria-valuemin="5" aria-valuemax="30"
-                   class="w-full range-slider" />
+            <p class="label-hint" style="margin-top: 6px;">
+              Bis 100 in 5er-Schritten · darüber 25er-Schritte. Bei 500 Personas in 30 Tagen wird die Simulation zur Studie.
+            </p>
+          </div>
+
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
+              <label for="tick-slider" style="margin-bottom: 0;">Simulierte Tage</label>
+              <span class="slider-value" aria-live="polite">{{ tickCount() }}</span>
+            </div>
+            <input id="tick-slider" type="range"
+                   [ngModel]="tickCount()" (ngModelChange)="setTickCount($event)"
+                   min="5" max="60" step="1"
+                   aria-label="Anzahl Tage"
+                   class="range-slider" style="width: 100%;" />
+            <div class="slider-scale">
+              <span>5</span><span>20</span><span>40</span><span>60</span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Cost estimate -->
-      <div class="glass-card p-4 flex items-center gap-4" role="region" aria-label="Kostenschaetzung">
-        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-          <i class="pi pi-calculator text-indigo-400" aria-hidden="true"></i>
-        </div>
-        <div class="flex-1 grid grid-cols-3 gap-4">
+      <div class="card card-accent" [class.card-info]="!isLongRun()" [class.card-warning]="isLongRun()" style="padding: 20px 24px;">
+        <p class="eyebrow" style="margin-bottom: 12px;">Kalkulation</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div>
-            <p class="text-[10px] text-slate-500 uppercase">API-Kosten</p>
-            <p class="text-sm font-bold text-white">~${{ estimatedCost() }}</p>
+            <p class="cost-num">~ ${{ estimatedCost() }}</p>
+            <p class="cost-label">API-Kosten</p>
           </div>
           <div>
-            <p class="text-[10px] text-slate-500 uppercase">Dauer</p>
-            <p class="text-sm font-bold text-white">~{{ estimatedMinutes() }} Min</p>
+            <p class="cost-num">{{ durationLabel() }}</p>
+            <p class="cost-label">Dauer</p>
           </div>
           <div>
-            <p class="text-[10px] text-slate-500 uppercase">API-Calls</p>
-            <p class="text-sm font-bold text-white">~{{ personaCount() * tickCount() * 2 }}</p>
+            <p class="cost-num">~ {{ personaCount() * tickCount() * 2 }}</p>
+            <p class="cost-label">API-Calls</p>
           </div>
         </div>
-      </div>
-    </div>
-  }
 
-  <!-- Step 3: Review + Start -->
-  @if (currentStep() === 3) {
-    <div class="space-y-5 animate-step-in">
-      <div class="glass-card p-6" role="region" aria-label="Zusammenfassung der Simulation">
-        <h3 class="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">Zusammenfassung</h3>
-        <div class="space-y-4">
-          <div>
-            <p class="text-[11px] text-slate-500">Name</p>
-            <p class="text-lg font-bold text-white">{{ name() }}</p>
+        @if (isLongRun()) {
+          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start;">
+            <i class="pi pi-info-circle" style="font-size: 16px; color: var(--warning); margin-top: 2px;"></i>
+            <p style="font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 0;">
+              <strong>Lange Laufzeit ({{ durationLabel() }}).</strong>
+              Die Simulation läuft im Hintergrund auf dem Server weiter — du kannst den Browser-Tab schließen
+              und später über die Simulationsliste zurückkehren. Persona-Generierung läuft in Batches parallel.
+            </p>
           </div>
-          <div>
-            <p class="text-[11px] text-slate-500">Produkt / Szenario</p>
-            <p class="text-sm text-slate-300 leading-relaxed">{{ productDescription() }}</p>
-          </div>
-          <div class="grid grid-cols-2 gap-4 pt-3 border-t border-white/[0.06]">
-            <div>
-              <p class="text-[11px] text-slate-500">Zielmarkt</p>
-              <p class="text-sm text-white">{{ targetMarket() || '---' }}</p>
-            </div>
-            <div>
-              <p class="text-[11px] text-slate-500">Branche</p>
-              <p class="text-sm text-white">{{ industry() || '---' }}</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-3 gap-4 pt-3 border-t border-white/[0.06]">
-            <div class="text-center">
-              <p class="text-2xl font-bold gradient-text review-pulse">{{ personaCount() }}</p>
-              <p class="text-[11px] text-slate-500">Personas</p>
-            </div>
-            <div class="text-center">
-              <p class="text-2xl font-bold gradient-text review-pulse" style="animation-delay: 0.3s">{{ tickCount() }}</p>
-              <p class="text-[11px] text-slate-500">Tage</p>
-            </div>
-            <div class="text-center">
-              <p class="text-2xl font-bold gradient-text review-pulse" style="animation-delay: 0.6s">${{ estimatedCost() }}</p>
-              <p class="text-[11px] text-slate-500">Kosten</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- Navigation -->
-  <div class="flex justify-between mt-8">
-    @if (currentStep() > 1) {
-      <button (click)="prevStep()"
-              aria-label="Zurueck zum vorherigen Schritt"
-              class="px-5 py-2.5 text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus:text-indigo-400">
-        <i class="pi pi-arrow-left mr-2 text-xs" aria-hidden="true"></i> Zurueck
-      </button>
-    } @else { <div></div> }
-
-    @if (currentStep() < 3) {
-      <button (click)="nextStep()" [disabled]="currentStep() === 1 && !canProceed()"
-              [attr.aria-label]="'Weiter zu Schritt ' + (currentStep() + 1)"
-              [class]="(canProceed() || currentStep() !== 1)
-                ? 'px-6 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50'
-                : 'px-6 py-2.5 text-sm font-medium text-slate-500 bg-white/[0.04] rounded-xl cursor-not-allowed'">
-        Weiter <i class="pi pi-arrow-right ml-2 text-xs" aria-hidden="true"></i>
-      </button>
-    } @else {
-      <button (click)="submit()" [disabled]="submitting()"
-              aria-label="Simulation jetzt starten"
-              class="submit-btn px-8 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-[1.02] inline-flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 focus:ring-offset-[#0a0a1a]">
-        @if (submitting()) {
-          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Wird gestartet...
-        } @else {
-          <i class="pi pi-play" aria-hidden="true"></i> Simulation starten
         }
-      </button>
-    }
+      </div>
+    </section>
+  }
+
+  <!-- Step 3: Review -->
+  @if (currentStep() === 3) {
+    <section class="card animate-fade-in" style="padding: 32px;">
+      <h2 class="h3" style="margin-bottom: 6px;">Prüfen & Starten</h2>
+      <p style="color: var(--ink-3); font-size: 14px; margin-bottom: 24px;">
+        Letzte Prüfung vor Beginn der Simulation.
+      </p>
+
+      <!-- Title block -->
+      <div style="padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+        <p class="eyebrow" style="margin-bottom: 8px; color: var(--primary);">Simulation</p>
+        <h3 style="font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.015em;">{{ name() }}</h3>
+      </div>
+
+      <!-- Description -->
+      <div style="margin-bottom: 24px;">
+        <p class="eyebrow" style="margin-bottom: 8px;">Beschreibung</p>
+        <p style="font-size: 15px; color: var(--ink); line-height: 1.55; padding: 14px 16px; background: var(--surface-2); border-left: 3px solid var(--primary); border-radius: var(--radius-sm);">
+          {{ productDescription() }}
+        </p>
+      </div>
+
+      <!-- Meta -->
+      <div class="field-row" style="margin-bottom: 28px;">
+        <div>
+          <p class="eyebrow" style="margin-bottom: 6px;">Zielmarkt</p>
+          <p style="font-size: 14.5px; color: var(--ink); font-weight: 500;">
+            {{ targetMarket() || '— nicht spezifiziert —' }}
+          </p>
+        </div>
+        <div>
+          <p class="eyebrow" style="margin-bottom: 6px;">Branche</p>
+          <p style="font-size: 14.5px; color: var(--ink); font-weight: 500;">
+            {{ industry() || '— nicht spezifiziert —' }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <div class="stat-block">
+          <p class="stat-num">{{ personaCount() }}</p>
+          <p class="stat-label">Personas</p>
+        </div>
+        <div class="stat-block">
+          <p class="stat-num">{{ tickCount() }}</p>
+          <p class="stat-label">Tage</p>
+        </div>
+        <div class="stat-block">
+          <p class="stat-num" style="color: var(--primary);">${{ estimatedCost() }}</p>
+          <p class="stat-label">geschätzte Kosten</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+        <span class="eyebrow" style="margin: 0;">KI-Anbieter</span>
+        <span style="font-size: 13.5px; color: var(--ink); font-weight: 600;">
+          @if (llmProvider() === 'anthropic') { Claude (Anthropic) } @else { OpenAI }
+        </span>
+      </div>
+    </section>
+  }
+
+  <!-- Sticky Footer -->
+  <div class="wizard-footer">
+    <div class="wizard-footer-inner">
+      <div class="wizard-footer-hint">
+        @if (currentStep() === 3) {
+          <span style="display: inline-flex; align-items: center; gap: 8px;">
+            <span class="dot" style="background: var(--success);"></span>
+            <span style="font-size: 13.5px; font-weight: 600; color: var(--ink);">Bereit zum Start</span>
+            <span style="font-size: 12.5px; color: var(--ink-3);">
+              · ~${{ estimatedCost() }} · {{ durationLabel() }}
+            </span>
+          </span>
+        } @else {
+          <span style="font-size: 13.5px; color: var(--ink-3); font-weight: 500;">
+            Schritt {{ currentStep() }} von 3
+          </span>
+        }
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        @if (currentStep() > 1) {
+          <button type="button" (click)="prevStep()" aria-label="Zurück" class="btn btn-secondary">
+            <i class="pi pi-arrow-left" style="font-size: 11px;"></i>
+            <span>Zurück</span>
+          </button>
+        }
+
+        @if (currentStep() < 3) {
+          <button type="button" (click)="nextStep()"
+                  [disabled]="currentStep() === 1 && !canProceed()"
+                  [attr.aria-label]="'Weiter zu Schritt ' + (currentStep() + 1)"
+                  class="btn btn-primary btn-lg">
+            <span>Weiter</span>
+            <i class="pi pi-arrow-right" style="font-size: 11px;"></i>
+          </button>
+        } @else {
+          <button type="button" (click)="submit()" [disabled]="submitting()"
+                  aria-label="Simulation jetzt starten"
+                  class="btn btn-primary btn-lg">
+            @if (submitting()) {
+              <i class="pi pi-spin pi-spinner" style="font-size: 12px;"></i>
+              <span>Wird gestartet …</span>
+            } @else {
+              <i class="pi pi-play" style="font-size: 11px;"></i>
+              <span>Simulation starten</span>
+            }
+          </button>
+        }
+      </div>
+    </div>
   </div>
 </div>
+
+<style>
+  /* === Stepper === */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 28px;
+    padding: 0 8px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--ink-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14.5px;
+    font-weight: 700;
+    transition: all 200ms ease;
+    flex-shrink: 0;
+  }
+  .step-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-3);
+    transition: color 200ms ease;
+  }
+  .step-active .step-circle {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 0 4px var(--primary-l);
+  }
+  .step-active .step-label {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .step-done .step-circle {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+  }
+  .step-done .step-label {
+    color: var(--ink);
+  }
+  .step-connector {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    margin: 0 16px;
+    min-width: 24px;
+    transition: background 200ms ease;
+  }
+  .step-connector-done {
+    background: var(--success);
+  }
+
+  /* === Preset Cards === */
+  .preset-card {
+    padding: 18px 16px;
+    cursor: pointer;
+    text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: all 160ms ease;
+    font-family: var(--font-sans);
+  }
+  .preset-card:hover {
+    border-color: var(--border-strong);
+  }
+  .preset-active {
+    border-color: var(--primary) !important;
+    border-width: 2px !important;
+    background: var(--primary-l) !important;
+    padding: 17px 15px;
+  }
+
+  /* === Slider === */
+  .slider-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .slider-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--ink-4);
+    font-weight: 500;
+  }
+
+  /* === Cost === */
+  .cost-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .cost-label {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-weight: 500;
+    margin-top: 4px;
+  }
+
+  /* === Stats === */
+  .stat-block { text-align: center; }
+  .stat-num {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.025em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* === Sticky Footer === */
+  .wizard-footer {
+    position: fixed;
+    bottom: 0;
+    left: 260px;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(14, 14, 12, 0.05);
+    z-index: 40;
+  }
+  .wizard-footer-inner {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .wizard-footer-hint {
+    flex: 1;
+    min-width: 0;
+  }
+  @media (max-width: 980px) {
+    .wizard-footer { left: 0; }
+    .wizard-footer-inner { padding: 14px 20px; }
+  }
+</style>

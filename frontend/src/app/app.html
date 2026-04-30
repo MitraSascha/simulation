@@ -1,97 +1,94 @@
 @if (isLoginPage()) {
-  <!-- Login: Kein Sidebar, nur Router-Outlet -->
   <router-outlet />
 } @else {
-  <div class="flex h-screen bg-[#0a0a1a]">
-    <!-- Sidebar -->
-    <aside class="w-[260px] flex flex-col border-r border-white/[0.06] bg-[#0d0d24] shrink-0"
-           role="navigation"
-           aria-label="Hauptnavigation">
-      <!-- Logo -->
-      <div class="p-6 pb-4">
-        <a routerLink="/simulations" class="flex items-center gap-3 group" aria-label="SimEngine Startseite">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow duration-300">
-            <i class="pi pi-bolt text-white text-sm"></i>
-          </div>
-          <div>
-            <h1 class="text-[15px] font-bold text-white tracking-tight">SimEngine</h1>
-            <p class="text-[10px] text-slate-500 font-medium tracking-wider uppercase">Social Simulation</p>
+  <div class="app-shell">
+
+    <!-- ============================================================
+         Sidebar
+         ============================================================ -->
+    <aside class="sidebar" role="navigation" aria-label="Hauptnavigation">
+
+      <!-- Brand -->
+      <div class="sidebar-brand">
+        <a routerLink="/simulations" class="brand-link" aria-label="Mitra Startseite">
+          <div class="brand-mark">M</div>
+          <div class="brand-text">
+            <div class="brand-name">Mitra</div>
+            <div class="brand-sub">Simulations-Engine</div>
           </div>
         </a>
       </div>
 
-      <!-- Navigation -->
-      <nav class="flex-1 px-3 space-y-0.5" aria-label="Seitennavigation">
-        <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2 mt-4" aria-hidden="true">Navigation</p>
+      <!-- Hauptnavigation -->
+      <nav class="sidebar-nav" aria-label="Seitennavigation">
+        <p class="nav-section-label">Navigation</p>
 
-        <a routerLink="/simulations" routerLinkActive="active-nav-link"
+        <a routerLink="/simulations" routerLinkActive="nav-link-active"
            [routerLinkActiveOptions]="{exact: true}"
-           aria-label="Alle Simulationen anzeigen"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-all border border-transparent relative">
-          <i class="pi pi-th-large text-sm"></i>
-          Simulationen
+           class="nav-link"
+           aria-label="Alle Simulationen anzeigen">
+          <i class="pi pi-th-large" aria-hidden="true"></i>
+          <span>Simulationen</span>
         </a>
 
-        <a routerLink="/simulations/create" routerLinkActive="active-nav-link"
-           aria-label="Neue Simulation erstellen"
-           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-all border border-transparent relative">
-          <i class="pi pi-plus-circle text-sm"></i>
-          Neue Simulation
+        <a routerLink="/simulations/create" routerLinkActive="nav-link-active"
+           class="nav-link"
+           aria-label="Neue Simulation erstellen">
+          <i class="pi pi-plus-circle" aria-hidden="true"></i>
+          <span>Neue Simulation</span>
         </a>
-
-        <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2 mt-6" aria-hidden="true">System</p>
-
-        <button (click)="openApiKeyDialog()"
-                aria-label="API-Key verwalten"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-all border border-transparent text-left">
-          <i class="pi pi-key text-sm"></i>
-          API-Key
-          <span class="ml-auto w-2 h-2 rounded-full bg-emerald-400" aria-label="API-Key aktiv"></span>
-        </button>
-
-        <button (click)="confirmLogout()"
-                aria-label="Vom System abmelden"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-slate-400 hover:text-red-400 hover:bg-red-500/5 transition-all border border-transparent text-left">
-          <i class="pi pi-sign-out text-sm"></i>
-          Abmelden
-        </button>
       </nav>
 
-      <!-- Footer -->
-      <div class="p-3 border-t border-white/[0.06]">
-        <div class="text-center py-2">
-          <p class="text-[10px] text-slate-600 tracking-wide">Powered by <span class="text-slate-500">Anthropic Claude</span></p>
-        </div>
+      <!-- Footer-Bereich -->
+      <div class="sidebar-footer">
+        <p class="nav-section-label">Account</p>
+
+        <button (click)="openApiKeyDialog()" class="nav-link" aria-label="API-Key verwalten">
+          <i class="pi pi-key" aria-hidden="true"></i>
+          <span>API-Schlüssel</span>
+          <span class="dot" style="background: var(--success); margin-left: auto;" aria-label="Verbunden"></span>
+        </button>
+
+        <button (click)="confirmLogout()" class="nav-link nav-link-danger" aria-label="Abmelden">
+          <i class="pi pi-sign-out" aria-hidden="true"></i>
+          <span>Abmelden</span>
+        </button>
+
+        <p class="sidebar-meta">
+          <span>Powered by</span> Anthropic Claude
+        </p>
       </div>
     </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 overflow-auto" role="main" aria-label="Hauptinhalt">
+    <!-- ============================================================
+         Main
+         ============================================================ -->
+    <main class="main" role="main" aria-label="Hauptinhalt">
       <router-outlet />
     </main>
   </div>
 
-  <!-- Logout Confirmation Dialog -->
+  <!-- ============================================================
+       Logout Confirmation
+       ============================================================ -->
   @if (showLogoutConfirm()) {
-    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
-         role="dialog"
-         aria-modal="true"
-         aria-label="Abmeldung bestätigen"
+    <div class="modal-overlay"
+         role="dialog" aria-modal="true" aria-label="Abmeldung bestätigen"
          (click)="showLogoutConfirm.set(false)"
          (keydown.escape)="showLogoutConfirm.set(false)">
-      <div class="bg-[#141432] border border-white/[0.08] rounded-2xl p-6 w-[380px] shadow-2xl animate-fade-in" (click)="$event.stopPropagation()">
-        <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-          <i class="pi pi-sign-out text-xl text-red-400"></i>
+      <div class="modal animate-fade-in" (click)="$event.stopPropagation()">
+        <div class="modal-icon" style="background: var(--danger-l); color: var(--danger);">
+          <i class="pi pi-sign-out" aria-hidden="true"></i>
         </div>
-        <h3 class="text-lg font-semibold text-white text-center mb-2">Abmelden?</h3>
-        <p class="text-sm text-slate-400 text-center mb-6">Dein API-Key wird entfernt und du musst dich erneut anmelden.</p>
-        <div class="flex gap-3">
-          <button (click)="showLogoutConfirm.set(false)"
-                  class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-300 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.08] transition-all">
+        <h3 class="modal-title">Abmelden?</h3>
+        <p class="modal-text">
+          Dein API-Schlüssel wird aus dem lokalen Speicher entfernt. Du musst dich erneut anmelden.
+        </p>
+        <div class="modal-actions">
+          <button (click)="showLogoutConfirm.set(false)" class="btn btn-secondary">
             Abbrechen
           </button>
-          <button (click)="logout()"
-                  class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-500 transition-all">
+          <button (click)="logout()" class="btn btn-danger">
             Abmelden
           </button>
         </div>
@@ -99,31 +96,37 @@
     </div>
   }
 
-  <!-- API Key Dialog -->
+  <!-- ============================================================
+       API Key Dialog
+       ============================================================ -->
   @if (showApiKeyDialog()) {
-    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
-         role="dialog"
-         aria-modal="true"
-         aria-label="API-Key ändern"
+    <div class="modal-overlay"
+         role="dialog" aria-modal="true" aria-label="API-Key ändern"
          (click)="showApiKeyDialog.set(false)"
          (keydown.escape)="showApiKeyDialog.set(false)">
-      <div class="bg-[#141432] border border-white/[0.08] rounded-2xl p-6 w-[420px] shadow-2xl animate-fade-in" (click)="$event.stopPropagation()">
-        <h3 class="text-lg font-semibold text-white mb-1">API-Key ändern</h3>
-        <p class="text-sm text-slate-400 mb-4">Dein API-Key für die SimEngine</p>
-        <input type="password"
-               [value]="apiKeyInput()"
-               (input)="apiKeyInput.set($any($event.target).value)"
-               placeholder="sim_..."
-               aria-label="Neuen API-Key eingeben"
-               class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all" />
-        <div class="flex justify-end gap-3 mt-4">
-          <button (click)="showApiKeyDialog.set(false)"
-                  class="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+      <div class="modal animate-fade-in" (click)="$event.stopPropagation()">
+        <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+          <i class="pi pi-key" aria-hidden="true"></i>
+        </div>
+        <h3 class="modal-title">API-Schlüssel ändern</h3>
+        <p class="modal-text">
+          Dein persönlicher Zugangsschlüssel zur Mitra-Engine.
+        </p>
+        <div class="field">
+          <label for="apikey-input">API-Schlüssel</label>
+          <input id="apikey-input"
+                 type="password"
+                 class="input"
+                 [value]="apiKeyInput()"
+                 (input)="apiKeyInput.set($any($event.target).value)"
+                 placeholder="sim_..."
+                 aria-label="Neuen API-Key eingeben" />
+        </div>
+        <div class="modal-actions">
+          <button (click)="showApiKeyDialog.set(false)" class="btn btn-secondary">
             Abbrechen
           </button>
-          <button (click)="saveApiKey()"
-                  aria-label="API-Key speichern"
-                  class="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 transition-colors">
+          <button (click)="saveApiKey()" class="btn btn-primary">
             Speichern
           </button>
         </div>

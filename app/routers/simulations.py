@@ -80,8 +80,9 @@ async def create_simulation(
     db: AsyncSession = Depends(get_db),
 ) -> SimulationRead:
     data = body.model_dump()
-    # SimulationConfig Pydantic-Objekt → dict
+    # SimulationConfig Pydantic-Objekt → dict + total_ticks aus tick_count ableiten
     data["config"] = body.config.model_dump()
+    data["total_ticks"] = body.config.tick_count
 
     sim = Simulation(**data)
     db.add(sim)
@@ -149,6 +150,7 @@ async def clone_simulation(
         total_ticks=original.total_ticks,
         config=original.config,
         webhook_url=original.webhook_url,
+        llm_provider=getattr(original, "llm_provider", "anthropic"),
         status=SimulationStatus.pending,
         current_tick=0,
     )

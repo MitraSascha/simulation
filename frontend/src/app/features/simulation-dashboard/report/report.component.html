@@ -1,80 +1,261 @@
-<div class="space-y-6 animate-fade-in">
-  <div class="flex items-center justify-between">
-    <h2 class="text-lg font-semibold text-white">Analyse-Report</h2>
-    <div class="flex gap-3 items-center">
-      <!-- Regenerate Button -->
-      <button (click)="regenerate()" [disabled]="regenerating()"
-              aria-label="Report neu generieren"
-              class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 hover:shadow-lg hover:shadow-indigo-900/30 inline-flex items-center gap-2 disabled:opacity-50 transition-all duration-200">
+<div class="animate-fade-in">
+
+  <!-- Section Header + Actions -->
+  <div class="flex items-end justify-between gap-6 mb-3 flex-wrap">
+    <div>
+      <h2 style="font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em;">
+        Analyse-Report
+      </h2>
+    </div>
+
+    <div class="flex items-center gap-3 flex-wrap">
+      <button type="button"
+              class="btn btn-secondary"
+              (click)="regenerate()"
+              [disabled]="regenerating()"
+              aria-label="Report neu generieren">
         @if (regenerating()) {
-          <i class="pi pi-spin pi-spinner"></i> Wird generiert...
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Wird verfasst …</span>
         } @else {
-          <i class="pi pi-refresh"></i> Neu generieren
+          <i class="pi pi-refresh"></i>
+          <span>Neu generieren</span>
         }
       </button>
 
-      <!-- Export Button Group -->
-      <div class="flex rounded-lg overflow-hidden border border-white/[0.06] shadow-sm" role="group" aria-label="Export-Optionen">
-        <button (click)="exportService.downloadJson(simId)"
-                class="px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 inline-flex items-center gap-1.5 transition-all duration-200"
-                aria-label="Als JSON exportieren">
-          <i class="pi pi-download text-xs"></i> JSON
+      <span style="width: 1px; height: 24px; background: var(--border);"></span>
+
+      <div class="export-group" role="group" aria-label="Export-Optionen">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="exportService.downloadJson(simId)">
+          <i class="pi pi-download"></i> JSON
         </button>
-        <div class="w-px bg-white/[0.1]"></div>
-        <button (click)="exportService.downloadPostsCsv(simId)"
-                class="px-3 py-2 text-sm text-slate-300 bg-white/[0.04] hover:bg-white/[0.08] inline-flex items-center gap-1.5 transition-colors"
-                aria-label="Posts als CSV exportieren">
-          <i class="pi pi-file text-xs"></i> Posts
+        <button type="button" class="btn btn-secondary btn-sm" (click)="exportService.downloadPostsCsv(simId)">
+          <i class="pi pi-file"></i> Posts
         </button>
-        <div class="w-px bg-white/[0.1]"></div>
-        <button (click)="exportService.downloadPersonasCsv(simId)"
-                class="px-3 py-2 text-sm text-slate-300 bg-white/[0.04] hover:bg-white/[0.08] inline-flex items-center gap-1.5 transition-colors"
-                aria-label="Personas als CSV exportieren">
-          <i class="pi pi-file text-xs"></i> Personas
+        <button type="button" class="btn btn-secondary btn-sm" (click)="exportService.downloadPersonasCsv(simId)">
+          <i class="pi pi-file"></i> Personas
         </button>
       </div>
     </div>
   </div>
 
+  <p style="font-size: 14px; color: var(--ink-3); margin-bottom: 32px; max-width: 640px;">
+    Erzählerische Auswertung mit Wendepunkten, Kritikpunkten und Chancen.
+  </p>
+
   @if (loading()) {
-    <div class="flex justify-center py-16" role="status" aria-label="Report wird geladen">
-      <i class="pi pi-spin pi-spinner text-3xl text-indigo-500"></i>
+    <div class="py-16 text-center" role="status">
+      <span class="badge badge-primary">
+        <i class="pi pi-spin pi-spinner"></i>
+        Wird gelesen
+      </span>
     </div>
   } @else if (noReport() && !report()) {
-    <div class="bg-white/[0.03] rounded-xl border border-white/[0.06] border-dashed p-12 text-center">
-      <div class="w-16 h-16 mx-auto rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
-        <i class="pi pi-file text-2xl text-slate-500"></i>
-      </div>
-      <p class="text-slate-400 mb-1 font-medium">Noch kein Report vorhanden</p>
-      <p class="text-xs text-slate-600 mb-5">Generiere einen Analyse-Report basierend auf den Simulationsdaten</p>
-      <button (click)="regenerate()" [disabled]="regenerating()"
-              class="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 hover:shadow-lg hover:shadow-indigo-900/30 inline-flex items-center gap-2 transition-all duration-200">
-        <i class="pi pi-sparkles"></i> Report generieren
+    <div class="empty-state card">
+      <i class="pi pi-file-edit empty-icon"></i>
+      <h3 style="font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 10px;">
+        Noch kein Report
+      </h3>
+      <p style="font-size: 14.5px; color: var(--ink-3); line-height: 1.6; margin-bottom: 24px;">
+        Generiere eine Analyse — die Engine liest alle Beiträge, Reaktionen
+        und Persona-Verläufe und verdichtet sie zu einem Report.
+      </p>
+      <button type="button" class="btn btn-primary btn-lg" (click)="regenerate()" [disabled]="regenerating()">
+        <i class="pi pi-sparkles"></i>
+        <span>Analyse generieren</span>
       </button>
     </div>
   } @else if (report()) {
-    <!-- Full Report -->
-    <div class="bg-white/[0.03] rounded-xl border border-white/[0.06] p-6">
-      <h3 class="text-sm font-semibold text-white mb-3">Zusammenfassung</h3>
-      <div class="prose prose-sm prose-invert max-w-none text-slate-300 whitespace-pre-wrap leading-7 tracking-wide [&>p]:mb-3">{{ report()!.full_report }}</div>
-    </div>
 
-    <!-- Section Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      @for (section of sections; track section.key) {
-        @if (getSectionContent(section.key)) {
-          <div class="bg-white/[0.03] rounded-xl border border-white/[0.06] p-5 hover:border-indigo-500/30 hover:shadow-[0_0_16px_rgba(99,102,241,0.06)] transition-all duration-300 group"
-               role="article">
-            <div class="flex items-center gap-2 mb-3">
-              <div class="w-8 h-8 rounded-lg bg-indigo-950/50 flex items-center justify-center border border-indigo-500/10 group-hover:border-indigo-500/30 transition-colors">
-                <i [class]="'pi ' + section.icon + ' text-indigo-400 text-sm'"></i>
-              </div>
-              <h4 class="text-sm font-semibold text-white">{{ section.label }}</h4>
-            </div>
-            <div class="text-sm text-slate-400 whitespace-pre-wrap leading-relaxed">{{ getSectionContent(section.key) }}</div>
+    <!-- Long-read + Outline Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+
+      <!-- LEFT: Long-Read Manuskript + Detail-Befunde -->
+      <div style="min-width: 0;">
+        <article class="card report-article">
+          <header class="report-header">
+            <p class="eyebrow" style="margin-bottom: 8px;">Manuskript</p>
+            <h2 style="font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em;">
+              Zusammenfassung
+            </h2>
+          </header>
+          <div class="report-prose">{{ report()!.full_report }}</div>
+        </article>
+
+        <!-- Section Cards -->
+        <div class="mt-8">
+          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 14px;">
+            Detail-Befunde
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @for (section of sections; track section.key) {
+              @if (getSectionContent(section.key)) {
+                <article class="section-card" [id]="'section-' + section.key">
+                  <header class="section-card-header">
+                    <i [class]="'pi ' + section.icon"></i>
+                    <h4>{{ section.label }}</h4>
+                  </header>
+                  <div class="section-text">{{ getSectionContent(section.key) }}</div>
+                </article>
+              }
+            }
           </div>
-        }
-      }
+        </div>
+      </div>
+
+      <!-- RIGHT: Section Outline (sticky) -->
+      <aside class="report-outline-col">
+        <div class="card report-outline">
+          <p class="eyebrow" style="margin-bottom: 12px;">Inhalt</p>
+          <ul class="outline-list">
+            @for (section of sections; track section.key) {
+              <li>
+                <button type="button"
+                        class="outline-btn"
+                        [class.outline-empty]="!hasSection(section.key)"
+                        (click)="scrollToSection(section.key)">
+                  <span class="outline-dot"
+                        [style.background]="hasSection(section.key) ? 'var(--success)' : 'var(--ink-4)'"></span>
+                  <span class="outline-label">{{ section.label }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      </aside>
     </div>
   }
 </div>
+
+<style>
+  .export-group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .empty-state {
+    padding: 56px 40px;
+    text-align: center;
+    max-width: 560px;
+    margin: 32px auto;
+  }
+  .empty-icon {
+    font-size: 36px;
+    color: var(--primary);
+    margin-bottom: 18px;
+    display: block;
+  }
+
+  .report-outline-col {
+    display: none;
+  }
+  @media (min-width: 1024px) {
+    .report-outline-col { display: block; }
+  }
+
+  .report-outline {
+    position: sticky;
+    top: 100px;
+    padding: 18px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+  }
+  .outline-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .outline-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: color 140ms ease, border-color 140ms ease, background 140ms ease, padding 140ms ease;
+  }
+  .outline-btn:hover {
+    color: var(--primary);
+    background: var(--surface-2);
+    border-left-color: var(--primary);
+    padding-left: 8px;
+  }
+  .outline-btn.outline-empty {
+    cursor: default;
+    opacity: 0.5;
+  }
+  .outline-btn.outline-empty:hover {
+    color: var(--ink);
+    background: transparent;
+    border-left-color: transparent;
+    padding-left: 10px;
+  }
+  .outline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .outline-label { flex: 1; }
+
+  .report-article {
+    padding: 40px;
+  }
+  .report-header {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-prose {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    scroll-margin-top: 110px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .section-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-sm);
+  }
+  .section-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .section-card-header i {
+    font-size: 16px;
+    color: var(--primary);
+  }
+  .section-card-header h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .section-text {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    white-space: pre-wrap;
+  }
+</style>

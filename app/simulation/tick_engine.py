@@ -20,13 +20,12 @@ from uuid import UUID
 
 logger = logging.getLogger("simulator.tick_engine")
 
-import anthropic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.utils.retry import with_retry
+from app.llm import LLMProvider, get_provider
 from app.models import (
     Persona,
     Post,
@@ -38,8 +37,6 @@ from app.models import (
     ReactionType,
     InfluenceEvent,
 )
-
-async_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 AGENT_SYSTEM_PROMPT = """Du bist eine virtuelle Person in einer sozialen Simulation.
 Verhalte dich authentisch und konsistent mit deiner Persönlichkeit.
@@ -53,57 +50,53 @@ Aktualisiere Meinungsentwicklung und Stimmung basierend auf den heutigen Aktione
 # Tool-Definitionen für Anthropic tool_use
 # ---------------------------------------------------------------------------
 
-PERSONA_ACTION_TOOL = {
-    "name": "persona_action",
-    "description": "Deine Aktion(en) für heute",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "actions": {
-                "type": "array",
-                "description": "1-3 Aktionen die du heute durchführst",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": ["post", "comment", "react", "nothing"]},
-                        "platform": {"type": "string", "enum": ["feedbook", "threadit"]},
-                        "content": {"type": "string"},
-                        "react_to_post_id": {"type": "string"},
-                        "reaction_type": {"type": "string", "enum": ["like", "dislike", "share"]},
-                        "comment_on_post_id": {"type": "string"},
-                        "subreddit": {"type": "string"},
-                    },
-                    "required": ["action"],
+PERSONA_ACTION_TOOL_NAME = "persona_action"
+PERSONA_ACTION_TOOL_DESC = "Deine Aktion(en) für heute"
+PERSONA_ACTION_TOOL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "actions": {
+            "type": "array",
+            "description": "1-3 Aktionen die du heute durchführst",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["post", "comment", "react", "nothing"]},
+                    "platform": {"type": "string", "enum": ["feedbook", "threadit"]},
+                    "content": {"type": "string"},
+                    "react_to_post_id": {"type": "string"},
+                    "reaction_type": {"type": "string", "enum": ["like", "dislike", "share"]},
+                    "comment_on_post_id": {"type": "string"},
+                    "subreddit": {"type": "string"},
                 },
-                "minItems": 1,
-                "maxItems": 3,
-            }
-        },
-        "required": ["actions"],
+                "required": ["action"],
+            },
+            "minItems": 1,
+            "maxItems": 3,
+        }
     },
+    "required": ["actions"],
 }
 
-STATE_UPDATE_TOOL = {
-    "name": "state_update",
-    "description": "Aktualisierter psychologischer Zustand der Persona",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "opinion_evolution": {
-                "type": "string",
-                "description": "Wie sich die Meinung entwickelt hat (1-2 Sätze)",
-            },
-            "mood": {
-                "type": "string",
-                "description": "Aktuelle Stimmung (ein Wort, z.B. begeistert, skeptisch, neugierig)",
-            },
-            "most_influential_post_id": {
-                "type": "string",
-                "description": "Post-ID aus dem Feed die deine Meinung heute am meisten beeinflusst hat (oder null wenn keiner)",
-            },
+STATE_UPDATE_TOOL_NAME = "state_update"
+STATE_UPDATE_TOOL_DESC = "Aktualisierter psychologischer Zustand der Persona"
+STATE_UPDATE_TOOL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "opinion_evolution": {
+            "type": "string",
+            "description": "Wie sich die Meinung entwickelt hat (1-2 Sätze)",
         },
-        "required": ["opinion_evolution", "mood"],
+        "mood": {
+            "type": "string",
+            "description": "Aktuelle Stimmung (ein Wort, z.B. begeistert, skeptisch, neugierig)",
+        },
+        "most_influential_post_id": {
+            "type": "string",
+            "description": "Post-ID aus dem Feed die deine Meinung heute am meisten beeinflusst hat (oder null wenn keiner)",
+        },
     },
+    "required": ["opinion_evolution", "mood"],
 }
 
 
@@ -407,6 +400,7 @@ async def persona_action(
     ingame_day: int,
     semaphore: asyncio.Semaphore,
     persona_history: str = "",
+    provider: LLMProvider | None = None,
 ) -> dict:
     """Lässt eine Persona auf ihren Feed reagieren.
 
@@ -418,55 +412,35 @@ async def persona_action(
         json.dumps(feed, ensure_ascii=False, indent=2) if feed else "Noch keine Beiträge."
     )
     persona_profile = _build_persona_profile_block(persona)
-
-    # User-Message: Profil (cached) + History + Feed
     history_block = f"{persona_history}\n\n" if persona_history else ""
+
+    if provider is None:
+        provider = get_provider(None)
 
     try:
         async with semaphore:
-            message = await with_retry(
-                async_client.messages.create,
-                model="claude-haiku-4-5-20251001",
+            return await provider.call_tool(
+                tier="fast",
+                system=AGENT_SYSTEM_PROMPT,
+                cache_system=True,
+                user_blocks=[
+                    {"text": persona_profile, "cache": True},
+                    {
+                        "text": (
+                            f"Ingame-Tag {ingame_day}.\n\n"
+                            f"{history_block}"
+                            f"=== Dein Feed heute ===\n{feed_text}\n\n"
+                            f"Was tust du heute? Du kannst 1-3 Aktionen durchführen "
+                            f"(posten, kommentieren, reagieren oder nichts tun). "
+                            f"Nutze das persona_action Tool."
+                        ),
+                    },
+                ],
+                tool_name=PERSONA_ACTION_TOOL_NAME,
+                tool_description=PERSONA_ACTION_TOOL_DESC,
+                tool_schema=PERSONA_ACTION_TOOL_SCHEMA,
                 max_tokens=512,
-                system=[
-                    {
-                        "type": "text",
-                        "text": AGENT_SYSTEM_PROMPT,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ],
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": persona_profile,
-                                "cache_control": {"type": "ephemeral"},
-                            },
-                            {
-                                "type": "text",
-                                "text": (
-                                    f"Ingame-Tag {ingame_day}.\n\n"
-                                    f"{history_block}"
-                                    f"=== Dein Feed heute ===\n{feed_text}\n\n"
-                                    f"Was tust du heute? Du kannst 1-3 Aktionen durchführen "
-                                    f"(posten, kommentieren, reagieren oder nichts tun). "
-                                    f"Nutze das persona_action Tool."
-                                ),
-                            },
-                        ],
-                    }
-                ],
-                tools=[PERSONA_ACTION_TOOL],
-                tool_choice={"type": "tool", "name": "persona_action"},
-                max_attempts=3,
-                base_delay=1.0,
             )
-
-        tool_block = next(b for b in message.content if b.type == "tool_use")
-        return tool_block.input  # {"actions": [...]}
-
     except Exception as e:
         logger.warning(f"persona_action für {persona.name} fehlgeschlagen: {e}")
         return {"actions": [{"action": "nothing"}]}
@@ -494,6 +468,7 @@ async def update_persona_state_async(
     tick_number: int,
     semaphore: asyncio.Semaphore,
     ambient_mood: str = "neutral",
+    provider: LLMProvider | None = None,
 ) -> tuple[dict, str | None]:
     """Aktualisiert den current_state einer Persona asynchron.
 
@@ -544,29 +519,22 @@ async def update_persona_state_async(
     )
 
     influential_post_id = None
+    if provider is None:
+        provider = get_provider(None)
 
     try:
         async with semaphore:
-            message = await with_retry(
-                async_client.messages.create,
-                model="claude-haiku-4-5-20251001",
+            parsed = await provider.call_tool(
+                tier="fast",
+                system=STATE_SYSTEM_PROMPT,
+                cache_system=True,
+                user_blocks=[{"text": prompt}],
+                tool_name=STATE_UPDATE_TOOL_NAME,
+                tool_description=STATE_UPDATE_TOOL_DESC,
+                tool_schema=STATE_UPDATE_TOOL_SCHEMA,
                 max_tokens=256,
-                system=[
-                    {
-                        "type": "text",
-                        "text": STATE_SYSTEM_PROMPT,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ],
-                messages=[{"role": "user", "content": prompt}],
-                tools=[STATE_UPDATE_TOOL],
-                tool_choice={"type": "tool", "name": "state_update"},
-                max_attempts=3,
-                base_delay=1.0,
             )
 
-        tool_block = next(b for b in message.content if b.type == "tool_use")
-        parsed = tool_block.input
         if "opinion_evolution" in parsed:
             state["opinion_evolution"] = str(parsed["opinion_evolution"])
         if "mood" in parsed:
@@ -591,6 +559,7 @@ async def run_tick(
     ingame_day: int,
     db: AsyncSession,
     semaphore: asyncio.Semaphore,
+    provider: LLMProvider | None = None,
 ) -> SimulationTick:
     """Führt einen kompletten Tick aus.
 
@@ -611,6 +580,9 @@ async def run_tick(
     )
     sim = result.scalar_one()
     personas: list[Persona] = sim.personas
+
+    if provider is None:
+        provider = get_provider(getattr(sim, "llm_provider", None))
 
     # --- Posts separat laden: nur letzte 5 Ingame-Tage ---
     min_day = max(1, ingame_day - 5)
@@ -649,6 +621,8 @@ async def run_tick(
     new_reactions_count = 0
     total_active = 0
     all_persona_summaries: dict[str, list[str]] = {}
+    # persona_id → [(post_id, influence_type), ...]  für deterministische Influence-Events
+    persona_interactions: dict[str, list[tuple[str, str]]] = {}
 
     for wave_num, wave_personas in enumerate(waves, 1):
         if not wave_personas:
@@ -679,6 +653,7 @@ async def run_tick(
                     ingame_day,
                     semaphore,
                     histories[str(p.id)],
+                    provider=provider,
                 )
                 for p in wave_personas
             ],
@@ -691,6 +666,11 @@ async def run_tick(
                 action_result = {"actions": [{"action": "nothing"}]}
 
             actions_list = action_result.get("actions", [{"action": "nothing"}])
+            if not actions_list:
+                actions_list = [{"action": "nothing"}]
+
+            # Defensiv: Modell liefert manchmal Strings statt Dicts — filtern.
+            actions_list = [a for a in actions_list if isinstance(a, dict)]
             if not actions_list:
                 actions_list = [{"action": "nothing"}]
 
@@ -745,6 +725,14 @@ async def run_tick(
                                 f"{action['react_to_post_id'][:8]}"
                             )
                             persona_was_active = True
+                            # Influence tracken: Reaktion = Post hat Aufmerksamkeit ausgelöst
+                            influence_type = (
+                                "negative_reaction" if reaction_type.value == "dislike"
+                                else "positive_reaction"
+                            )
+                            persona_interactions.setdefault(str(persona.id), []).append(
+                                (action["react_to_post_id"], influence_type)
+                            )
                         except Exception:
                             action_type = "nothing"
 
@@ -775,6 +763,10 @@ async def run_tick(
                                 f"{action['content'][:60]}"
                             )
                             persona_was_active = True
+                            # Influence tracken: Kommentar = starke Auseinandersetzung mit Post
+                            persona_interactions.setdefault(str(persona.id), []).append(
+                                (action["comment_on_post_id"], "engagement")
+                            )
                         except Exception:
                             action_type = "nothing"
 
@@ -844,15 +836,17 @@ async def run_tick(
             tick_number,
             semaphore,
             ambient_mood=ambient_moods.get(str(persona.id), "neutral"),
+            provider=provider,
         )
         for persona in personas
     ]
     state_results = await asyncio.gather(*state_update_tasks, return_exceptions=True)
 
     # --- 5. State-Results verarbeiten + Influence Events (Feature C) ---
+    post_map = {str(p.id): p for p in all_posts}
+
     for persona, state_result in zip(personas, state_results):
         if isinstance(state_result, Exception):
-            # Bei Exception: alten State beibehalten
             logger.warning(
                 f"State-Update für {persona.name} fehlgeschlagen (Exception): {state_result}"
             )
@@ -860,14 +854,11 @@ async def run_tick(
             new_state, influential_post_id = state_result
             persona.current_state = new_state
 
-            # Influence Event speichern
+            # Influence Events aus LLM-identifiziertem opinion_shift
             if influential_post_id and influential_post_id in valid_post_ids:
-                # Finde den Post-Autor
-                source_post = next(
-                    (p for p in all_posts if str(p.id) == influential_post_id), None
-                )
+                source_post = post_map.get(influential_post_id)
                 if source_post and str(source_post.author_id) != str(persona.id):
-                    influence_event = InfluenceEvent(
+                    db.add(InfluenceEvent(
                         simulation_id=simulation_id,
                         source_persona_id=source_post.author_id,
                         target_persona_id=persona.id,
@@ -877,10 +868,31 @@ async def run_tick(
                         description=(
                             f"{persona.name} wurde von "
                             f"{source_post.author.name if source_post.author else 'Unbekannt'}"
-                            f"'s Post beeinflusst"
+                            f"'s Post in ihrer Meinung beeinflusst"
                         ),
-                    )
-                    db.add(influence_event)
+                    ))
+
+        # Deterministische Influence Events aus tatsächlichen Interaktionen
+        for post_id, inf_type in persona_interactions.get(str(persona.id), []):
+            source_post = post_map.get(post_id)
+            if not source_post or str(source_post.author_id) == str(persona.id):
+                continue
+            author_name = source_post.author.name if source_post.author else "Unbekannt"
+            if inf_type == "engagement":
+                description = f"{persona.name} hat auf {author_name}s Post geantwortet"
+            elif inf_type == "positive_reaction":
+                description = f"{persona.name} hat auf {author_name}s Post positiv reagiert"
+            else:
+                description = f"{persona.name} hat {author_name}s Post abgelehnt"
+            db.add(InfluenceEvent(
+                simulation_id=simulation_id,
+                source_persona_id=source_post.author_id,
+                target_persona_id=persona.id,
+                trigger_post_id=UUID(post_id),
+                ingame_day=ingame_day,
+                influence_type=inf_type,
+                description=description,
+            ))
 
     # --- 6. Tick-Snapshot speichern ---
     tick = SimulationTick(

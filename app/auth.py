@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Query, Security, status
 from fastapi.security import APIKeyHeader
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,6 +48,43 @@ async def verify_api_key(
         )
 
     # last_used_at asynchron aktualisieren (fire-and-forget, kein await nötig)
+    await db.execute(
+        update(ApiKey)
+        .where(ApiKey.id == db_key.id)
+        .values(last_used_at=datetime.now(timezone.utc).replace(tzinfo=None))
+    )
+
+    return db_key
+
+
+async def verify_api_key_header_or_query(
+    header_key: str | None = Security(API_KEY_HEADER),
+    query_key: str | None = Query(None, alias="api_key"),
+    db: AsyncSession = Depends(get_db),
+) -> ApiKey:
+    """Wie verify_api_key, akzeptiert aber zusätzlich `?api_key=` als Query-Param.
+
+    Notwendig für Browser-EventSource (SSE), das keine Custom-Header senden kann.
+    """
+    api_key = header_key or query_key
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="X-API-Key Header oder ?api_key= Query-Param fehlt",
+        )
+
+    key_hash = _hash_key(api_key)
+    result = await db.execute(
+        select(ApiKey).where(ApiKey.key_hash == key_hash, ApiKey.is_active == True)
+    )
+    db_key = result.scalar_one_or_none()
+
+    if not db_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Ungültiger oder deaktivierter API-Key",
+        )
+
     await db.execute(
         update(ApiKey)
         .where(ApiKey.id == db_key.id)

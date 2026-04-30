@@ -7,26 +7,21 @@ from uuid import UUID
 
 logger = logging.getLogger("simulator.analysis")
 
-import anthropic
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.config import settings
-from app.utils.retry import with_retry
+from app.llm import get_provider
 from app.models import AnalysisReport, Post, Comment, Simulation, InfluenceEvent
-
-async_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 ANALYST_SYSTEM_PROMPT = """Du bist ein erfahrener Marktforscher und Analyst.
 Analysiere die Ergebnisse einer sozialen Simulation objektiv und präzise.
 Hebe Überraschungen, Wendepunkte und nicht-offensichtliche Erkenntnisse hervor.
 Sei kritisch — eine gute Analyse zeigt auch Risiken und Schwächen auf."""
 
-ANALYSIS_REPORT_TOOL = {
-    "name": "analysis_report",
-    "description": "Strukturierter Analyse-Report der Simulation",
-    "input_schema": {
+ANALYSIS_REPORT_TOOL_NAME = "analysis_report"
+ANALYSIS_REPORT_TOOL_DESC = "Strukturierter Analyse-Report der Simulation"
+ANALYSIS_REPORT_TOOL_SCHEMA = {
         "type": "object",
         "properties": {
             "full_report": {
@@ -82,16 +77,20 @@ ANALYSIS_REPORT_TOOL = {
             "platform_dynamics",
             "network_evolution",
         ],
-    },
 }
 
 
-async def generate_report(simulation_id: UUID, db: AsyncSession) -> AnalysisReport:
-    """Generiert den Analyse-Report asynchron via Claude Sonnet mit Tool Use.
+async def generate_report(
+    simulation_id: UUID,
+    db: AsyncSession,
+    provider_name: str | None = None,
+) -> AnalysisReport:
+    """Generiert den Analyse-Report asynchron via konfigurierten LLM-Provider.
 
     Lädt alle Posts via selectinload (kein Lazy Loading).
     Speichert AnalysisReport in DB und committet.
     """
+    provider = get_provider(provider_name)
     # Simulation laden
     result = await db.execute(
         select(Simulation)
@@ -220,40 +219,39 @@ Erstelle einen strukturierten Report mit:
 
 Sei konkret, zitiere Beispiele aus der Simulation."""
 
-    logger.info(f"[{simulation_id}] Starte Report-Generierung ({len(posts)} Posts)")
-    message = await with_retry(
-        async_client.messages.create,
-        model="claude-sonnet-4-6",
-        max_tokens=8192,
-        system=[
-            {
-                "type": "text",
-                "text": ANALYST_SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ],
-        messages=[{"role": "user", "content": prompt}],
-        tools=[ANALYSIS_REPORT_TOOL],
-        tool_choice={"type": "tool", "name": "analysis_report"},
-        max_attempts=3,
-        base_delay=2.0,
+    logger.info(
+        f"[{simulation_id}] Starte Report-Generierung ({len(posts)} Posts, provider={provider.name})"
+    )
+    data = await provider.call_tool(
+        tier="smart",
+        system=ANALYST_SYSTEM_PROMPT,
+        cache_system=True,
+        user_blocks=[{"text": prompt}],
+        tool_name=ANALYSIS_REPORT_TOOL_NAME,
+        tool_description=ANALYSIS_REPORT_TOOL_DESC,
+        tool_schema=ANALYSIS_REPORT_TOOL_SCHEMA,
+        max_tokens=16000,
     )
 
-    tool_block = next(b for b in message.content if b.type == "tool_use")
-    data = tool_block.input
+    if "full_report" not in data:
+        logger.warning(
+            f"[{simulation_id}] Report möglicherweise abgeschnitten "
+            f"(fields={list(data.keys())})"
+        )
 
+    placeholder = "— im Report nicht behandelt —"
     report = AnalysisReport(
         simulation_id=simulation_id,
-        full_report=data["full_report"],
-        sentiment_over_time=data["sentiment_over_time"],
-        key_turning_points=data["key_turning_points"],
-        criticism_points=data["criticism_points"],
-        opportunities=data["opportunities"],
-        target_segment_analysis=data["target_segment_analysis"],
-        unexpected_findings=data["unexpected_findings"],
-        influence_network=data["influence_network"],
-        platform_dynamics=data["platform_dynamics"],
-        network_evolution=data["network_evolution"],
+        full_report=data.get("full_report", placeholder),
+        sentiment_over_time=data.get("sentiment_over_time", placeholder),
+        key_turning_points=data.get("key_turning_points", placeholder),
+        criticism_points=data.get("criticism_points", placeholder),
+        opportunities=data.get("opportunities", placeholder),
+        target_segment_analysis=data.get("target_segment_analysis", placeholder),
+        unexpected_findings=data.get("unexpected_findings", placeholder),
+        influence_network=data.get("influence_network", placeholder),
+        platform_dynamics=data.get("platform_dynamics", placeholder),
+        network_evolution=data.get("network_evolution", placeholder),
     )
     db.add(report)
     await db.commit()
